@@ -159,6 +159,14 @@ canvas#main-canvas{position:absolute;top:0;left:0;width:100%;height:100%;image-r
 <canvas id="main-canvas"></canvas>
 <div id="ui-layer">
 <!-- TITLE SCREEN -->
+<div id="loading-screen" class="screen active" style="background:#000;z-index:200">
+<h1 style="color:#7affb2;font-size:24px;letter-spacing:4px;margin-bottom:40px">THE COLOR THAT<br>SHOULD NOT EXIST</h1>
+<div id="loading-text" style="color:#5a8a6a;font-size:14px;margin-bottom:20px">Loading... 0%</div>
+<div style="width:300px;height:4px;background:#1a1a2e;border-radius:2px;overflow:hidden">
+<div id="loading-bar" style="width:0%;height:100%;background:#7affb2;transition:width 0.3s"></div>
+</div>
+</div>
+
 <div id="title-screen" class="screen active">
 <h1>THE COLOR THAT<br>SHOULD NOT EXIST</h1>
 <div class="subtitle">Vesper · Apartment 407</div>
@@ -272,7 +280,202 @@ canvas#main-canvas{position:absolute;top:0;left:0;width:100%;height:100%;image-r
 </div>
 <script>
 "use strict";
-// ==================== ASSET MANAGER ====================
+// ==================== PERFORMANCE MANAGER ====================
+const PerfManager = {
+  isLowEnd: false,
+  qualityLevel: 'high', // 'low', 'medium', 'high'
+  frameCount: 0,
+  lastTime: 0,
+  fps: 60,
+  particleLimit: 100,
+  maxAnomalies: 5,
+  imageCache: {},
+  preloadQueue: [],
+  loadedAssets: 0,
+  totalAssets: 0,
+
+  init() {
+    // Detect device capabilities
+    this.detectDevice();
+    this.setupPerformanceMonitoring();
+  },
+
+  detectDevice() {
+    const canvas = document.createElement('canvas');
+    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+    
+    // Check WebGL support
+    if (!gl) {
+      this.qualityLevel = 'low';
+      this.isLowEnd = true;
+    }
+    
+    // Check device memory
+    if (navigator.deviceMemory) {
+      if (navigator.deviceMemory < 4) {
+        this.qualityLevel = 'low';
+        this.isLowEnd = true;
+      } else if (navigator.deviceMemory < 8) {
+        this.qualityLevel = 'medium';
+      }
+    }
+    
+    // Check hardware concurrency
+    if (navigator.hardwareConcurrency) {
+      if (navigator.hardwareConcurrency < 4) {
+        this.qualityLevel = 'low';
+        this.isLowEnd = true;
+      }
+    }
+    
+    // Check for mobile
+    if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+      if (this.qualityLevel === 'high') {
+        this.qualityLevel = 'medium';
+      }
+    }
+    
+    // Apply quality settings
+    this.applyQualitySettings();
+  },
+
+  applyQualitySettings() {
+    switch(this.qualityLevel) {
+      case 'low':
+        this.particleLimit = 30;
+        this.maxAnomalies = 3;
+        document.getElementById('scanlines').style.display = 'none';
+        break;
+      case 'medium':
+        this.particleLimit = 60;
+        this.maxAnomalies = 4;
+        break;
+      case 'high':
+        this.particleLimit = 100;
+        this.maxAnomalies = 5;
+        break;
+    }
+  },
+
+  setupPerformanceMonitoring() {
+    this.lastTime = performance.now();
+    
+    setInterval(() => {
+      const now = performance.now();
+      const delta = now - this.lastTime;
+      this.fps = Math.round(1000 / delta);
+      this.lastTime = now;
+      
+      // Auto-adjust quality if FPS drops
+      if (this.fps < 30 && this.qualityLevel !== 'low') {
+        this.qualityLevel = 'low';
+        this.isLowEnd = true;
+        this.applyQualitySettings();
+        console.log('Performance: Auto-adjusted to low quality');
+      } else if (this.fps < 50 && this.qualityLevel === 'high') {
+        this.qualityLevel = 'medium';
+        this.applyQualitySettings();
+        console.log('Performance: Auto-adjusted to medium quality');
+      }
+    }, 1000);
+  },
+
+  // Asset Loading with Progress
+  loadAssetsWithProgress(assets, onProgress, onComplete) {
+    this.totalAssets = assets.length;
+    this.loadedAssets = 0;
+    this.preloadQueue = [...assets];
+    
+    const loadNext = () => {
+      if (this.preloadQueue.length === 0) {
+        onComplete();
+        return;
+      }
+      
+      const asset = this.preloadQueue.shift();
+      const img = new Image();
+      
+      img.onload = () => {
+        this.imageCache[asset.name] = img;
+        this.loadedAssets++;
+        onProgress(this.loadedAssets / this.totalAssets);
+        loadNext();
+      };
+      
+      img.onerror = () => {
+        console.error('Failed to load:', asset.path);
+        this.loadedAssets++;
+        onProgress(this.loadedAssets / this.totalAssets);
+        loadNext();
+      };
+      
+      img.src = asset.path;
+    };
+    
+    loadNext();
+  },
+
+  // Canvas Rendering Optimization
+  shouldRender() {
+    // Skip rendering if tab is hidden
+    if (document.hidden) return false;
+    
+    // Skip rendering if FPS too low
+    if (this.fps < 20 && this.qualityLevel === 'low') {
+      return this.frameCount % 2 === 0; // Render every other frame
+    }
+    
+    return true;
+  },
+
+  // Particle System Optimization
+  limitParticles(particles) {
+    if (particles.length > this.particleLimit) {
+      return particles.slice(0, this.particleLimit);
+    }
+    return particles;
+  },
+
+  // Image Caching
+  getCachedImage(name) {
+    return this.imageCache[name] || null;
+  },
+
+  clearCache() {
+    this.imageCache = {};
+  },
+
+  // Memory Management
+  checkMemory() {
+    if (performance.memory) {
+      const usedMB = performance.memory.usedJSHeapSize / 1048576;
+      const totalMB = performance.memory.totalJSHeapSize / 1048576;
+      const percent = (usedMB / totalMB) * 100;
+      
+      if (percent > 90) {
+        console.warn('Memory usage high:', percent.toFixed(1) + '%');
+        this.clearCache();
+      }
+      
+      return { usedMB, totalMB, percent };
+    }
+    return null;
+  },
+
+  // Quality Indicator
+  showQualityIndicator() {
+    const indicator = document.createElement('div');
+    indicator.style.cssText = 'position:fixed;top:10px;left:10px;background:#0a0f0ae0;color:#7affb2;padding:6px 12px;font-size:11px;border-radius:4px;z-index:1000;pointer-events:none';
+    indicator.innerHTML = `${this.qualityLevel.toUpperCase()} | ${this.fps} FPS`;
+    document.body.appendChild(indicator);
+    
+    setInterval(() => {
+      indicator.innerHTML = `${this.qualityLevel.toUpperCase()} | ${this.fps} FPS`;
+    }, 1000);
+    
+    setTimeout(() => indicator.remove(), 10000);
+  }
+};
 const Assets = {
   backgrounds: {},
   portraits: {},
@@ -296,10 +499,12 @@ const Assets = {
       'elias': 'char_elias.jpg',
       'mira': 'char_mira.jpg',
       'photo_dealer': 'char_dealer.jpg',
-      'old_woman': 'char_oldwoman.jpg'
+      'old_woman': 'char_oldwoman.jpg',
+      'child': 'char_child.jpg',
+      'receptionist': 'char_receptionist.jpg'
     };
 
-    let total = Object.keys(bgFiles).length + Object.keys(portraitFiles).length;
+    const totalAssets = Object.keys(bgFiles).length + Object.keys(portraitFiles).length;
     let loaded = 0;
 
     const onImg = (img, key, isBg) => {
@@ -307,9 +512,25 @@ const Assets = {
         loaded++;
         if (isBg) this.backgrounds[key] = img;
         else this.portraits[key] = img;
-        if (loaded >= total) {
+        
+        // Update loading progress
+        const progress = loaded / totalAssets;
+        const loadingText = document.getElementById('loading-text');
+        const loadingBar = document.getElementById('loading-bar');
+        if (loadingText) {
+          loadingText.textContent = `Loading... ${Math.round(progress * 100)}%`;
+        }
+        if (loadingBar) {
+          loadingBar.style.width = `${progress * 100}%`;
+        }
+        
+        if (loaded >= totalAssets) {
           this.loaded = true;
           if (this.onReady) this.onReady();
+          setTimeout(() => {
+            const loadingScreen = document.getElementById('loading-screen');
+            if (loadingScreen) loadingScreen.classList.remove('active');
+          }, 500);
         }
       };
     };
@@ -1686,7 +1907,11 @@ const PhotoSystem = {
     }
 
     // Draw anomaly indicators as interactive hotspots
-    photo.anomalies.forEach((a, i) => {
+    // Limit anomalies for performance on low-end devices
+    const maxAnomalies = PerfManager.maxAnomalies;
+    const anomaliesToDraw = photo.anomalies.slice(0, maxAnomalies);
+    
+    anomaliesToDraw.forEach((a, i) => {
       const hx = w * (0.15 + i * 0.18);
       const hy = h * 0.25;
       const hw = w * 0.12;
@@ -2157,9 +2382,14 @@ const Renderer = {
   startLoop() {
     const loop = () => {
       this.animFrame++;
-      if (!Camera.isOpen && document.getElementById('hud').classList.contains('active')) {
-        this.draw();
+      
+      // Performance check - skip rendering if needed
+      if (PerfManager.shouldRender()) {
+        if (!Camera.isOpen && document.getElementById('hud').classList.contains('active')) {
+          this.draw();
+        }
       }
+      
       requestAnimationFrame(loop);
     };
     loop();
@@ -2720,6 +2950,9 @@ const Renderer = {
       ctx.fillRect(p.x, p.y, p.size, p.size);
       return p.life > 0;
     });
+    
+    // Limit particles for performance
+    this.particles = PerfManager.limitParticles(this.particles);
 
     // Night overlay
     if (State.isNight()) {
@@ -2729,11 +2962,14 @@ const Renderer = {
 
     // Reality distortion effect - enhanced
     if (State.reality_distortion > 30) {
+      // Reduce glitch frequency on low-end devices
+      const glitchChance = PerfManager.isLowEnd ? 0.01 : 0.02;
+      
       // Trigger glitch effects
       VisualFX.glitchEffect(State.reality_distortion / 30);
       
-      if (Math.random() < 0.02) {
-        this.glitchTimer = 5;
+      if (Math.random() < glitchChance) {
+        this.glitchTimer = PerfManager.isLowEnd ? 3 : 5;
       }
       if (this.glitchTimer > 0) {
         this.glitchTimer--;
@@ -4260,11 +4496,17 @@ const EndingSystem = {
 // ==================== MAIN GAME ====================
 const Game = {
   init() {
+    // Initialize performance manager
+    PerfManager.init();
+    
     Renderer.init();
     this.updateHUD();
 
-    // Show loading indicator
-    this.notify('Loading assets...');
+    // Remove loading screen if assets already loaded
+    const loadingScreen = document.getElementById('loading-screen');
+    if (Assets.loaded && loadingScreen) {
+      loadingScreen.classList.remove('active');
+    }
 
     // Touch/click handling for scene interaction
     const canvas = document.getElementById('main-canvas');
