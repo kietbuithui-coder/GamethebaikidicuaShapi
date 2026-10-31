@@ -1,0 +1,3173 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0a0a0a">
+<title>THE COLOR THAT SHOULD NOT EXIST</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'Courier New',monospace;touch-action:none}
+#game-container{position:relative;width:100%;height:100%;overflow:hidden}
+canvas#main-canvas{position:absolute;top:0;left:0;width:100%;height:100%;image-rendering:pixelated}
+#ui-layer{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10}
+#ui-layer>*{pointer-events:auto}
+.screen{position:absolute;top:0;left:0;width:100%;height:100%;display:none;flex-direction:column;align-items:center;justify-content:center}
+.screen.active{display:flex}
+#title-screen{background:linear-gradient(180deg,#0a0f0a 0%,#1a1a2e 50%,#0a0a0a 100%);z-index:100}
+#title-screen h1{color:#7affb2;font-size:clamp(14px,4vw,28px);text-align:center;letter-spacing:4px;text-shadow:0 0 20px #7affb280,0 0 40px #7affb240;margin-bottom:8px;animation:titlePulse 4s ease-in-out infinite}
+#title-screen .subtitle{color:#5a8a6a;font-size:clamp(10px,2.5vw,14px);letter-spacing:6px;margin-bottom:20px;text-transform:uppercase}
+#title-screen .intro-text{color:#4a6a5a;font-size:clamp(9px,2.2vw,11px);max-width:320px;text-align:center;line-height:1.6;margin-bottom:30px;padding:0 20px}
+@keyframes titlePulse{0%,100%{opacity:0.8;text-shadow:0 0 20px #7affb280,0 0 40px #7affb240}50%{opacity:1;text-shadow:0 0 30px #7affb2b0,0 0 60px #7affb260}}
+.menu-btn{background:none;border:1px solid #3a5a4a;color:#7affb2;padding:12px 40px;margin:6px;font-family:'Courier New',monospace;font-size:clamp(12px,3vw,16px);cursor:pointer;letter-spacing:2px;min-width:200px;transition:all 0.3s}
+.menu-btn:hover,.menu-btn:active{background:#7affb215;border-color:#7affb2;text-shadow:0 0 10px #7affb2}
+#hud{position:absolute;top:0;left:0;width:100%;padding:8px;display:none;justify-content:space-between;align-items:flex-start;z-index:20}
+#hud.active{display:flex}
+.hud-left,.hud-right{display:flex;gap:6px;align-items:center}
+.hud-btn{background:#0a0f0a99;border:1px solid #2a3a2a;color:#7affb2;padding:6px 10px;font-family:'Courier New',monospace;font-size:11px;cursor:pointer;border-radius:3px;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.hud-btn:active{background:#7affb230}
+.hud-info{color:#5a8a6a;font-size:10px;font-family:'Courier New',monospace;text-shadow:0 0 4px #000}
+#dialogue-box{position:absolute;bottom:0;left:0;width:100%;background:linear-gradient(0deg,#0a0a0af0 0%,#0a0a0ae0 80%,transparent 100%);padding:16px;padding-bottom:max(16px,env(safe-area-inset-bottom));display:none;z-index:30}
+#dialogue-box.active{display:block}
+#speaker-name{color:#7affb2;font-size:clamp(11px,2.8vw,14px);margin-bottom:6px;letter-spacing:1px}
+#dialogue-text{color:#c0d0c0;font-size:clamp(12px,3vw,15px);line-height:1.6;min-height:48px;margin-bottom:10px}
+#dialogue-choices{display:flex;flex-direction:column;gap:6px}
+.choice-btn{background:#1a1a2e80;border:1px solid #2a4a3a;color:#a0c0a0;padding:10px 14px;font-family:'Courier New',monospace;font-size:clamp(11px,2.8vw,13px);cursor:pointer;text-align:left;line-height:1.4;border-radius:3px;transition:all 0.2s}
+.choice-btn:active{background:#7affb220;border-color:#7affb2}
+#camera-overlay{position:absolute;top:0;left:0;width:100%;height:100%;display:none;z-index:25;flex-direction:column}
+#camera-overlay.active{display:flex}
+#camera-viewfinder{flex:1;position:relative;border:2px solid #7affb240;margin:20px;border-radius:4px;overflow:hidden}
+#camera-viewfinder::before{content:'';position:absolute;top:50%;left:0;right:0;height:1px;background:#7affb220}
+#camera-viewfinder::after{content:'';position:absolute;left:50%;top:0;bottom:0;width:1px;background:#7affb220}
+.camera-hud{position:absolute;color:#7affb2;font-size:10px;font-family:'Courier New',monospace}
+.camera-tl{top:8px;left:8px}.camera-tr{top:8px;right:8px}.camera-bl{bottom:8px;left:8px}.camera-br{bottom:8px;right:8px}
+#camera-controls{display:flex;justify-content:center;align-items:center;padding:16px;gap:16px;background:#0a0a0ae0}
+.cam-btn{background:#1a1a2e;border:1px solid #3a5a4a;color:#7affb2;width:50px;height:50px;border-radius:50%;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.cam-btn.shutter{width:64px;height:64px;border-color:#7affb2;border-width:2px}
+.cam-btn:active{background:#7affb230}
+#album-screen{background:#0a0a0af5;z-index:50;overflow-y:auto;padding:16px}
+#album-screen h2{color:#7affb2;font-size:16px;letter-spacing:2px;margin-bottom:16px;text-align:center}
+.photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;width:100%;max-width:600px}
+.photo-item{position:relative;aspect-ratio:4/3;border:1px solid #2a3a2a;cursor:pointer;overflow:hidden;background:#1a1a2e}
+.photo-item canvas{width:100%;height:100%}
+.photo-item .photo-label{position:absolute;bottom:0;left:0;right:0;background:#0a0a0ae0;color:#7affb2;font-size:9px;padding:3px 6px;font-family:'Courier New',monospace}
+.photo-item.changed{border-color:#b8a040}
+#photo-detail{position:absolute;top:0;left:0;width:100%;height:100%;background:#0a0a0af8;display:none;flex-direction:column;z-index:55}
+#photo-detail.active{display:flex}
+#photo-detail-canvas{flex:1;margin:16px}
+#photo-detail-info{padding:12px;color:#a0a080;font-size:11px;line-height:1.6}
+#photo-detail-controls{display:flex;gap:8px;padding:12px;justify-content:center}
+#notebook-screen{background:#0a0a0af5;z-index:50;overflow-y:auto;padding:16px}
+#notebook-screen h2{color:#7affb2;font-size:16px;letter-spacing:2px;margin-bottom:16px;text-align:center}
+.note-entry{background:#1a1a2e40;border:1px solid #2a3a2a;padding:10px;margin-bottom:8px;border-radius:3px;color:#a0b0a0;font-size:12px;line-height:1.5}
+.note-entry .note-day{color:#5a8a6a;font-size:10px;margin-bottom:4px}
+#save-screen{background:#0a0a0af5;z-index:60;padding:16px}
+#save-screen h2{color:#7affb2;font-size:16px;letter-spacing:2px;margin-bottom:20px}
+.save-slot{background:#1a1a2e40;border:1px solid #2a3a2a;padding:16px;margin-bottom:10px;cursor:pointer;width:100%;max-width:400px;text-align:left;border-radius:3px}
+.save-slot:active{border-color:#7affb2}
+.save-slot h3{color:#7affb2;font-size:13px;margin-bottom:6px}
+.save-slot p{color:#5a8a6a;font-size:11px;line-height:1.4}
+.save-slot.empty h3{color:#3a5a4a}
+#notification{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#0a0f0ae0;border:1px solid #3a5a4a;color:#7affb2;padding:12px 24px;font-size:13px;border-radius:4px;display:none;z-index:70;text-align:center;animation:fadeInOut 2s forwards;backdrop-filter:blur(4px)}
+@keyframes fadeInOut{0%{opacity:0}15%{opacity:1}85%{opacity:1}100%{opacity:0}}
+#transition-overlay{position:absolute;top:0;left:0;width:100%;height:100%;background:#000;z-index:80;opacity:0;pointer-events:none;transition:opacity 0.8s}
+#transition-overlay.active{opacity:1;pointer-events:auto}
+#ending-screen{background:#000;z-index:90;padding:20px;text-align:center}
+#ending-screen h2{color:#7affb2;font-size:clamp(16px,4vw,24px);letter-spacing:3px;margin-bottom:20px}
+#ending-screen .ending-text{color:#a0b0a0;font-size:clamp(12px,3vw,15px);line-height:1.8;max-width:500px;margin:0 auto 30px}
+.interact-hint{position:absolute;bottom:120px;left:50%;transform:translateX(-50%);color:#7affb280;font-size:11px;font-family:'Courier New',monospace;animation:hintPulse 2s ease-in-out infinite;display:none}
+.interact-hint.active{display:block}
+@keyframes hintPulse{0%,100%{opacity:0.4}50%{opacity:0.8}}
+#nav-bar{position:absolute;bottom:0;left:0;width:100%;display:none;justify-content:center;gap:8px;padding:8px;padding-bottom:max(8px,env(safe-area-inset-bottom));background:linear-gradient(0deg,#0a0a0ae0 0%,transparent 100%);z-index:20;flex-wrap:wrap}
+#nav-bar.active{display:flex}
+.nav-btn{background:#0a1a0a80;border:1px solid #2a3a2a;color:#7affb2;padding:8px 14px;font-family:'Courier New',monospace;font-size:clamp(10px,2.5vw,12px);cursor:pointer;border-radius:3px;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);max-width:45%;text-align:center;line-height:1.3}
+.nav-btn:active{background:#7affb230;border-color:#7affb2}
+.nav-btn.sleep-btn{border-color:#5a4a8a;color:#a090c0}
+.nav-btn .nav-arrow{font-size:14px;display:block;margin-bottom:2px}
+#hotspot-panel{position:absolute;bottom:70px;left:50%;transform:translateX(-50%);display:none;gap:6px;flex-wrap:wrap;justify-content:center;z-index:20;max-width:95%}
+#hotspot-panel.active{display:flex}
+.hotspot-btn{background:#1a1a2e80;border:1px solid #3a4a3a;color:#a0c0a0;padding:6px 12px;font-family:'Courier New',monospace;font-size:10px;cursor:pointer;border-radius:3px}
+.hotspot-btn:active{background:#7affb220}
+#location-name{position:absolute;top:50px;left:50%;transform:translateX(-50%);color:#7affb260;font-size:11px;letter-spacing:3px;font-family:'Courier New',monospace;display:none;text-transform:uppercase}
+#location-name.active{display:block;animation:locationFade 3s forwards}
+@keyframes locationFade{0%{opacity:0}20%{opacity:0.8}80%{opacity:0.8}100%{opacity:0}}
+.glitch{animation:glitch 0.1s linear}
+@keyframes glitch{0%{transform:translate(0)}25%{transform:translate(-2px,1px)}50%{transform:translate(2px,-1px)}75%{transform:translate(-1px,2px)}100%{transform:translate(0)}}
+</style>
+</head>
+<body>
+<div id="game-container">
+<canvas id="main-canvas"></canvas>
+<div id="ui-layer">
+<!-- TITLE SCREEN -->
+<div id="title-screen" class="screen active">
+<h1>THE COLOR THAT<br>SHOULD NOT EXIST</h1>
+<div class="subtitle">Vesper · Apartment 407</div>
+<div class="intro-text">You wake in a city that doesn't mention a certain color.<br>An old camera shows you what eyes cannot see.<br>Trust nothing. Photograph everything.</div>
+<button class="menu-btn" onclick="Game.newGame()">NEW GAME</button>
+<button class="menu-btn" onclick="Game.loadGame()">CONTINUE</button>
+<button class="menu-btn" onclick="Game.showSaveSlots()">LOAD GAME</button>
+</div>
+<!-- HUD -->
+<div id="hud">
+<div class="hud-left">
+<button class="hud-btn" onclick="Game.openCamera()">📷</button>
+<button class="hud-btn" onclick="Game.openAlbum()">🖼</button>
+<button class="hud-btn" onclick="Game.openNotebook()">📓</button>
+</div>
+<div class="hud-right">
+<span class="hud-info" id="hud-day">DAY 1</span>
+<span class="hud-info" id="hud-time">07:00</span>
+<button class="hud-btn" onclick="Game.openSaveMenu()">⏎</button>
+</div>
+</div>
+<!-- LOCATION NAME -->
+<div id="location-name"></div>
+<!-- INTERACT HINT -->
+<div class="interact-hint" id="interact-hint">TAP TO INTERACT</div>
+<!-- NAVIGATION BAR -->
+<div id="nav-bar"></div>
+<!-- HOTSPOT PANEL -->
+<div id="hotspot-panel"></div>
+<!-- DIALOGUE BOX -->
+<div id="dialogue-box">
+<div id="speaker-name"></div>
+<div id="dialogue-text"></div>
+<div id="dialogue-choices"></div>
+</div>
+<!-- CAMERA OVERLAY -->
+<div id="camera-overlay">
+<div id="camera-viewfinder">
+<canvas id="camera-canvas"></canvas>
+<span class="camera-hud camera-tl" id="cam-mode">OBSERVE</span>
+<span class="camera-hud camera-tr" id="cam-loc">APT 407</span>
+<span class="camera-hud camera-bl" id="cam-film">FILM: 12</span>
+<span class="camera-hud camera-br" id="cam-anomaly">◉ REC</span>
+</div>
+<div id="camera-controls">
+<button class="cam-btn" onclick="Camera.toggleMode()">⚡</button>
+<button class="cam-btn shutter" onclick="Camera.takePhoto()">◉</button>
+<button class="cam-btn" onclick="Camera.closeCamera()">✕</button>
+</div>
+</div>
+<!-- ALBUM SCREEN -->
+<div id="album-screen" class="screen">
+<h2>— PHOTO ALBUM —</h2>
+<div class="photo-grid" id="photo-grid"></div>
+<div style="margin-top:16px;text-align:center">
+<button class="menu-btn" onclick="Game.closeAlbum()">CLOSE</button>
+</div>
+</div>
+<!-- PHOTO DETAIL -->
+<div id="photo-detail">
+<canvas id="photo-detail-canvas"></canvas>
+<div id="photo-detail-info"></div>
+<div id="photo-detail-controls">
+<button class="cam-btn" onclick="PhotoSystem.analyzePhoto()">🔍</button>
+<button class="cam-btn" onclick="PhotoSystem.destroyPhoto()">🔥</button>
+<button class="cam-btn" onclick="PhotoSystem.closeDetail()">✕</button>
+</div>
+</div>
+<!-- NOTEBOOK -->
+<div id="notebook-screen" class="screen">
+<h2>— INVESTIGATION NOTES —</h2>
+<div id="notebook-entries"></div>
+<div style="margin-top:16px;text-align:center">
+<button class="menu-btn" onclick="Game.closeNotebook()">CLOSE</button>
+</div>
+</div>
+<!-- SAVE SCREEN -->
+<div id="save-screen" class="screen">
+<h2>— SAVE / LOAD —</h2>
+<div id="save-slots"></div>
+<div style="margin-top:16px;text-align:center">
+<button class="menu-btn" onclick="Game.closeSaveMenu()">CLOSE</button>
+</div>
+</div>
+<!-- NOTIFICATION -->
+<div id="notification"></div>
+<!-- TRANSITION -->
+<div id="transition-overlay"></div>
+<!-- ENDING SCREEN -->
+<div id="ending-screen" class="screen">
+<h2 id="ending-title"></h2>
+<div class="ending-text" id="ending-text"></div>
+<button class="menu-btn" onclick="Game.returnToTitle()">RETURN</button>
+</div>
+</div>
+</div>
+<script>
+"use strict";
+// ==================== AUDIO MANAGER ====================
+const Audio_ = {
+  ctx: null,
+  masterGain: null,
+  ambientGain: null,
+  sfxGain: null,
+  currentAmbient: null,
+  init() {
+    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    this.masterGain = this.ctx.createGain();
+    this.masterGain.gain.value = 0.5;
+    this.masterGain.connect(this.ctx.destination);
+    this.ambientGain = this.ctx.createGain();
+    this.ambientGain.gain.value = 0.3;
+    this.ambientGain.connect(this.masterGain);
+    this.sfxGain = this.ctx.createGain();
+    this.sfxGain.gain.value = 0.6;
+    this.sfxGain.connect(this.masterGain);
+  },
+  resume() {
+    if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+  },
+  playTone(freq, duration, type='sine', gain=0.3) {
+    if (!this.ctx) this.init();
+    const osc = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    g.gain.setValueAtTime(gain, this.ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+    osc.connect(g);
+    g.connect(this.sfxGain);
+    osc.start();
+    osc.stop(this.ctx.currentTime + duration);
+  },
+  playNoise(duration, gain=0.1) {
+    if (!this.ctx) this.init();
+    const bufferSize = this.ctx.sampleRate * duration;
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * 0.5;
+    const src = this.ctx.createBufferSource();
+    src.buffer = buffer;
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(gain, this.ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 800;
+    src.connect(filter);
+    filter.connect(g);
+    g.connect(this.sfxGain);
+    src.start();
+  },
+  playCameraShutter() {
+    this.playNoise(0.08, 0.4);
+    setTimeout(() => this.playTone(2000, 0.05, 'square', 0.1), 50);
+    setTimeout(() => this.playNoise(0.04, 0.2), 100);
+  },
+  playKnock() {
+    for (let i = 0; i < 3; i++) {
+      setTimeout(() => this.playTone(80 + Math.random()*20, 0.15, 'sine', 0.5), i * 400);
+    }
+  },
+  playDrone(freq=55) {
+    if (!this.ctx) this.init();
+    if (this.currentAmbient) { try { this.currentAmbient.stop(); } catch(e){} }
+    const osc = this.ctx.createOscillator();
+    const osc2 = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+    osc2.type = 'sine';
+    osc2.frequency.value = freq * 1.01;
+    g.gain.value = 0.08;
+    const lfo = this.ctx.createOscillator();
+    const lfoGain = this.ctx.createGain();
+    lfo.frequency.value = 0.1;
+    lfoGain.gain.value = 3;
+    lfo.connect(lfoGain);
+    lfoGain.connect(osc.frequency);
+    osc.connect(g);
+    osc2.connect(g);
+    g.connect(this.ambientGain);
+    osc.start();
+    osc2.start();
+    lfo.start();
+    this.currentAmbient = { stop: () => { g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 2); setTimeout(() => { try{osc.stop();osc2.stop();lfo.stop();}catch(e){} }, 2500); }};
+  },
+  playFootstep() {
+    this.playTone(60 + Math.random()*20, 0.1, 'sine', 0.15);
+    this.playNoise(0.05, 0.08);
+  },
+  playWhisper() {
+    if (!this.ctx) this.init();
+    const duration = 1.5;
+    const bufferSize = this.ctx.sampleRate * duration;
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      const t = i / this.ctx.sampleRate;
+      data[i] = (Math.random() * 2 - 1) * 0.3 * Math.sin(t * Math.PI / duration) * (0.5 + 0.5 * Math.sin(t * 8));
+    }
+    const src = this.ctx.createBufferSource();
+    src.buffer = buffer;
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = 1200;
+    filter.Q.value = 2;
+    const g = this.ctx.createGain();
+    g.gain.value = 0.15;
+    src.connect(filter);
+    filter.connect(g);
+    g.connect(this.sfxGain);
+    src.start();
+  },
+  playElectricHum() {
+    this.playTone(120, 2, 'sawtooth', 0.02);
+    this.playTone(60, 2, 'sine', 0.03);
+  },
+  playUnsettling() {
+    const notes = [233, 247, 261, 277];
+    notes.forEach((n, i) => {
+      setTimeout(() => this.playTone(n, 1.5, 'sine', 0.06), i * 400);
+    });
+  }
+};
+
+// ==================== GAME STATE ====================
+const State = {
+  day: 1,
+  hour: 7,
+  minute: 0,
+  location: 'apartment_407',
+  film: 12,
+  photos: [],
+  notes: [],
+  flags: {},
+  trust: { elias: 50, mira: 50, child: 0, photoDealer: 50, city: 50 },
+  memory_stability: 100,
+  reality_distortion: 0,
+  truth_exposure: 0,
+  photo_integrity: 100,
+  child_closeness: 0,
+  suspicion_city: 0,
+  evidence_collected: 0,
+  eventsTriggered: [],
+  questsComplete: [],
+  npcsMet: [],
+  endingsUnlocked: [],
+  cameraMode: 0, // 0=observe, 1=viewfinder, 2=capture
+  currentDialogue: null,
+  currentPhotoViewing: null,
+  analyzedPhotos: [],
+  destroyedPhotos: [],
+  photoChanges: [],
+  hallwayDoors: 4,
+  eliasKnows: false,
+  mirrorReflection: true,
+  redVisible: false,
+  totalPhotosTaken: 0,
+  photosWithRed: 0,
+  deletedEvidence: 0,
+  liedCount: 0,
+  confrontedCount: 0,
+  silentCount: 0,
+  daysSlept: 0,
+  nightsExplored: 0,
+  peopleDisappeared: 0,
+
+  reset() {
+    this.day = 1; this.hour = 7; this.minute = 0;
+    this.location = 'apartment_407'; this.film = 12;
+    this.photos = []; this.notes = []; this.flags = {};
+    this.trust = { elias: 50, mira: 50, child: 0, photoDealer: 50, city: 50 };
+    this.memory_stability = 100; this.reality_distortion = 0;
+    this.truth_exposure = 0; this.photo_integrity = 100;
+    this.child_closeness = 0; this.suspicion_city = 0;
+    this.evidence_collected = 0; this.eventsTriggered = [];
+    this.questsComplete = []; this.npcsMet = [];
+    this.endingsUnlocked = []; this.cameraMode = 0;
+    this.currentDialogue = null; this.currentPhotoViewing = null;
+    this.analyzedPhotos = []; this.destroyedPhotos = [];
+    this.photoChanges = []; this.hallwayDoors = 4;
+    this.eliasKnows = false; this.mirrorReflection = true;
+    this.redVisible = false; this.totalPhotosTaken = 0;
+    this.photosWithRed = 0; this.deletedEvidence = 0;
+    this.liedCount = 0; this.confrontedCount = 0;
+    this.silentCount = 0; this.daysSlept = 0;
+    this.nightsExplored = 0; this.peopleDisappeared = 0;
+  },
+
+  serialize() {
+    return JSON.stringify({
+      day:this.day, hour:this.hour, minute:this.minute,
+      location:this.location, film:this.film,
+      photos:this.photos, notes:this.notes, flags:this.flags,
+      trust:this.trust, memory_stability:this.memory_stability,
+      reality_distortion:this.reality_distortion,
+      truth_exposure:this.truth_exposure, photo_integrity:this.photo_integrity,
+      child_closeness:this.child_closeness, suspicion_city:this.suspicion_city,
+      evidence_collected:this.evidence_collected,
+      eventsTriggered:this.eventsTriggered, questsComplete:this.questsComplete,
+      npcsMet:this.npcsMet, endingsUnlocked:this.endingsUnlocked,
+      hallwayDoors:this.hallwayDoors, eliasKnows:this.eliasKnows,
+      mirrorReflection:this.mirrorReflection, redVisible:this.redVisible,
+      totalPhotosTaken:this.totalPhotosTaken, photosWithRed:this.photosWithRed,
+      deletedEvidence:this.deletedEvidence, liedCount:this.liedCount,
+      confrontedCount:this.confrontedCount, silentCount:this.silentCount,
+      daysSlept:this.daysSlept, nightsExplored:this.nightsExplored,
+      peopleDisappeared:this.peopleDisappeared,
+      analyzedPhotos:this.analyzedPhotos, destroyedPhotos:this.destroyedPhotos,
+      photoChanges:this.photoChanges
+    });
+  },
+
+  deserialize(json) {
+    const d = JSON.parse(json);
+    Object.keys(d).forEach(k => { if (k in this) this[k] = d[k]; });
+  },
+
+  addFlag(key, val=true) { this.flags[key] = val; },
+  hasFlag(key) { return !!this.flags[key]; },
+  advanceTime(mins) {
+    this.minute += mins;
+    while (this.minute >= 60) { this.minute -= 60; this.hour++; }
+    if (this.hour >= 24) { this.hour -= 24; this.day++; }
+  },
+  getTimeString() {
+    return `${String(this.hour).padStart(2,'0')}:${String(this.minute).padStart(2,'0')}`;
+  },
+  isNight() { return this.hour >= 20 || this.hour < 6; }
+};
+
+// ==================== LOCATIONS ====================
+const Locations = {
+  apartment_407: {
+    name: 'Apartment 407',
+    description: 'Your apartment. A bed, a table, a window overlooking Vesper.',
+    connections: ['hallway', 'window_view'],
+    npcs: [],
+    hotspots: ['bed', 'table', 'window', 'mirror', 'camera_stand', 'door'],
+    ambient: 'electric',
+    color: '#0a1a0a'
+  },
+  hallway: {
+    name: 'Hallway — Floor 4',
+    description: 'The corridor stretches longer than it should. Fluorescent lights buzz overhead.',
+    connections: ['apartment_407', 'apartment_408', 'stairs', 'elevator'],
+    npcs: ['elias'],
+    hotspots: ['door_407', 'door_408', 'light_fixture', 'window_end'],
+    ambient: 'fluorescent',
+    color: '#0f1a10'
+  },
+  stairs: {
+    name: 'Stairwell',
+    description: 'Concrete steps spiral downward. The greenish light fades as you descend.',
+    connections: ['hallway', 'ground_floor'],
+    npcs: [],
+    hotspots: ['graffiti', 'stain'],
+    ambient: 'echo',
+    color: '#0a0f0a'
+  },
+  ground_floor: {
+    name: 'Ground Floor — Lobby',
+    description: 'The lobby is empty. A single chair faces the wall.',
+    connections: ['stairs', 'street', 'mailroom'],
+    npcs: ['old_woman'],
+    hotspots: ['chair', 'mailbox', 'front_door'],
+    ambient: 'quiet',
+    color: '#0f150f'
+  },
+  street: {
+    name: 'Vesper Street',
+    description: 'The street is bathed in pale green light. No sun shadows. People walk without looking at each other.',
+    connections: ['ground_floor', 'photo_shop', 'square', 'hospital', 'subway'],
+    npcs: ['passerby', 'child_distant'],
+    hotspots: ['streetlamp', 'puddle', 'poster'],
+    ambient: 'city',
+    color: '#101a12'
+  },
+  photo_shop: {
+    name: "The Photo Dealer's Shop",
+    description: 'Walls covered in old photographs. The air smells of chemicals and something sweet.',
+    connections: ['street'],
+    npcs: ['photo_dealer'],
+    hotspots: ['photo_wall', 'counter', 'cabinet', 'old_camera'],
+    ambient: 'quiet',
+    color: '#1a150f'
+  },
+  square: {
+    name: 'Central Square',
+    description: 'A fountain that no longer runs. Statues with faces worn smooth.',
+    connections: ['street', 'school', 'hotel', 'greenhouse'],
+    npcs: ['mira', 'child_distant'],
+    hotspots: ['fountain', 'statue', 'bench', 'notice_board'],
+    ambient: 'open',
+    color: '#121a14'
+  },
+  hospital: {
+    name: 'Old Hospital',
+    description: 'Abandoned. But some of the beds look recently used.',
+    connections: ['street'],
+    npcs: ['nurse_shadow'],
+    hotspots: ['beds', 'records', 'basement_door', 'operating_room'],
+    ambient: 'echo',
+    color: '#0f1510'
+  },
+  subway: {
+    name: 'Subway Station',
+    description: 'The tracks are dry. No train has come in years. Or has it?',
+    connections: ['street'],
+    npcs: ['shadow_man'],
+    hotspots: ['tracks', 'ticket_machine', 'tunnel_entrance'],
+    ambient: 'underground',
+    color: '#0a0a10'
+  },
+  school: {
+    name: 'Abandoned School',
+    description: 'Desks arranged in perfect rows. Chalk writing on the board that changes.',
+    connections: ['square'],
+    npcs: ['teacher_voice'],
+    hotspots: ['chalkboard', 'desks', 'lockers', 'playground_window'],
+    ambient: 'quiet',
+    color: '#10150f'
+  },
+  hotel: {
+    name: 'Hotel Without Room 9',
+    description: 'The elevator skips from 8 to 10. No one mentions it.',
+    connections: ['square'],
+    npcs: ['receptionist'],
+    hotspots: ['elevator', 'desk', 'key_board', 'hallway_mirror'],
+    ambient: 'muffled',
+    color: '#151015'
+  },
+  greenhouse: {
+    name: 'The Greenhouse',
+    description: 'Plants that grow in spirals. None of them are green.',
+    connections: ['square'],
+    npcs: ['gardener'],
+    hotspots: ['spiral_plant', 'pond', 'glass_wall', 'hidden_door'],
+    ambient: 'organic',
+    color: '#0f1a0f'
+  },
+  window_view: {
+    name: 'Window — Apartment 407',
+    description: 'Vesper stretches below. The light is always the same color.',
+    connections: ['apartment_407'],
+    npcs: ['child_window'],
+    hotspots: ['skyline', 'street_below', 'child_spot', 'reflection'],
+    ambient: 'wind',
+    color: '#0a1510'
+  },
+  archive_room: {
+    name: 'Photo Archive',
+    description: 'Rows of filing cabinets. Some are warm to the touch.',
+    connections: ['subway'],
+    npcs: [],
+    hotspots: ['cabinets', 'classified', 'desk', 'safe'],
+    ambient: 'silence',
+    color: '#10100f'
+  },
+  sealed_district: {
+    name: 'Sealed District',
+    description: 'A neighborhood behind barriers. No one goes in. No one comes out.',
+    connections: ['street'],
+    npcs: ['blocked_figure'],
+    hotspots: ['barrier', 'sign', 'watchtower'],
+    ambient: 'tension',
+    color: '#0a0f0a'
+  },
+  secret_room: {
+    name: 'The Room That Shouldn\'t Exist',
+    description: 'You found it. The room between the photos.',
+    connections: [],
+    npcs: ['the_original'],
+    hotspots: ['mirror_wall', 'central_table', 'the_door'],
+    ambient: 'void',
+    color: '#000000'
+  }
+};
+
+// ==================== CHARACTERS ====================
+const Characters = {
+  elias: {
+    name: 'Elias',
+    title: 'The Neighbor',
+    description: 'Friendly. Polite. Always knows what you photographed.',
+    schedule: { day: ['hallway', 'street', 'square'], night: ['hallway'] },
+    dialogues: {
+      first_meeting: [
+        { speaker: 'Elias', text: "Oh, hello. You must be new to the building. I'm Elias, from 408.", delay: 0 },
+        { speaker: 'Elias', text: "I couldn't help but notice you've been here a few days now. Settling in alright?", delay: 2000 },
+        { speaker: '', text: "How do you respond?", choices: [
+          { text: "It's... quiet here. Where exactly is this city?", next: 'elias_city' },
+          { text: "Why does everyone ask about the color red?", next: 'elias_red' },
+          { text: "Have we met before?", next: 'elias_met' }
+        ]}
+      ],
+      elias_city: [
+        { speaker: 'Elias', text: "Vesper. It's not on most maps anymore. But people live here. That's what matters.", delay: 0 },
+        { speaker: 'Elias', text: "You'll find your rhythm. The days here... they have a way of settling into you.", delay: 2000 }
+      ],
+      elias_red: [
+        { speaker: 'Elias', text: "...", delay: 0 },
+        { speaker: '', text: "He pauses. Exactly 2.4 seconds.", delay: 1000 },
+        { speaker: 'Elias', text: "Red? I don't think anyone here has mentioned that. What makes you ask?", delay: 2400 },
+        { speaker: '', text: "His eyes don't move while he speaks.", delay: 4000 }
+      ],
+      elias_met: [
+        { speaker: 'Elias', text: "That's an interesting question.", delay: 0 },
+        { speaker: 'Elias', text: "I've lived here eight years. Long enough to recognize someone who belongs.", delay: 1500 },
+        { speaker: '', text: "He says this with absolute certainty. You feel a chill.", delay: 3500 }
+      ],
+      ask_photo: [
+        { speaker: 'Elias', text: "I don't like photographs.", delay: 0 },
+        { speaker: 'Elias', text: "They capture something that shouldn't be captured. Don't you think?", delay: 1500 },
+        { speaker: '', text: "He seems to know about your camera. You haven't shown it to him.", delay: 3500 }
+      ],
+      suspicious: [
+        { speaker: 'Elias', text: "You've been asking a lot of questions.", delay: 0 },
+        { speaker: 'Elias', text: "Some doors in Vesper are closed for a reason. I'm trying to help you.", delay: 2000 },
+        { speaker: 'Elias', text: "...Aren't I?", delay: 4000 }
+      ],
+      after_photo_him: [
+        { speaker: 'Elias', text: "What did you see?", delay: 0 },
+        { speaker: '', text: "He asks this without turning around. The photo shows something else entirely.", delay: 1500 },
+        { speaker: 'Elias', text: "It doesn't matter what I look like in pictures. What matters is what I know.", delay: 3500 },
+        { speaker: 'Elias', text: "And I know you need to be careful. Delete that photo.", delay: 5500 },
+        { speaker: '', text: "What do you do?", choices: [
+          { text: "Delete the photo.", next: 'elias_delete_result' },
+          { text: "Keep it but say you deleted it.", next: 'elias_lie_result' },
+          { text: "Show it to the Photo Dealer.", next: 'elias_dealer_result' },
+          { text: "Say nothing.", next: 'elias_silent_result' }
+        ]}
+      ],
+      elias_delete_result: [
+        { speaker: '', text: "You delete the photo. Elias nods slowly.", delay: 0 },
+        { speaker: 'Elias', text: "Thank you. You're making the right choice. I think.", delay: 1500 },
+        { speaker: '', text: "Trust with Elias increases. But was the photo really showing something dangerous?", delay: 3500 },
+        { speaker: '', text: "[Trust Elias +15] [Photo evidence lost]", delay: 5000 }
+      ],
+      elias_lie_result: [
+        { speaker: '', text: "You pretend to delete it. Elias watches your hands carefully.", delay: 0 },
+        { speaker: 'Elias', text: "You didn't delete it.", delay: 2000 },
+        { speaker: '', text: "He doesn't accuse you further. But something has changed.", delay: 3500 },
+        { speaker: '', text: "[Trust Elias -20] [Elias is now suspicious of you]", delay: 5000 }
+      ],
+      elias_dealer_result: [
+        { speaker: '', text: "You walk away without responding. Elias calls after you.", delay: 0 },
+        { speaker: 'Elias', text: "That photo. Don't show it to anyone.", delay: 1500 },
+        { speaker: '', text: "His voice carries an urgency you haven't heard before.", delay: 3500 },
+        { speaker: '', text: "[Trust Elias -10] [Photo Dealer path unlocked]", delay: 5000 }
+      ],
+      elias_silent_result: [
+        { speaker: '', text: "You say nothing. Elias turns to face you fully.", delay: 0 },
+        { speaker: 'Elias', text: "Silence is also an answer here. Perhaps the most honest one.", delay: 2000 },
+        { speaker: 'Elias', text: "You still haven't remembered, have you?", delay: 4000 },
+        { speaker: '', text: "He walks away. You're not sure what he meant.", delay: 6000 },
+        { speaker: '', text: "[Memory query triggered] [Elias knows something about your past]", delay: 7500 }
+      ]
+    }
+  },
+  mira: {
+    name: 'Mira',
+    title: 'The Faceless Woman',
+    description: 'In photos, her face is always replaced by pale yellow light.',
+    schedule: { day: ['square', 'street'], night: ['apartment_407'] },
+    dialogues: {
+      first_meeting: [
+        { speaker: 'Mira', text: "You see them too, don't you? The way people look at me.", delay: 0 },
+        { speaker: 'Mira', text: "They can't remember. No one remembers.", delay: 2000 },
+        { speaker: '', text: "She touches her own face as if checking it's still there.", delay: 4000 },
+        { speaker: 'Mira', text: "I had a child. A daughter. She would be about... how old is the child you've been seeing?", delay: 6000 },
+        { speaker: '', text: "How do you respond?", choices: [
+          { text: "What child? I haven't seen any child.", next: 'mira_deny' },
+          { text: "The child by the window? How do you know about that?", next: 'mira_admit' },
+          { text: "Who is your daughter? Tell me everything.", next: 'mira_ask' }
+        ]}
+      ],
+      mira_deny: [
+        { speaker: 'Mira', text: "No... no, of course not. No one does.", delay: 0 },
+        { speaker: 'Mira', text: "But the photographs remember. If you take my picture, you'll see.", delay: 2000 },
+        { speaker: '', text: "[Mira's face in photos: always blank yellow light]", delay: 4000 }
+      ],
+      mira_admit: [
+        { speaker: 'Mira', text: "Yes. Yes, that's her. That's my daughter.", delay: 0 },
+        { speaker: 'Mira', text: "She doesn't speak. She just watches. Getting closer each day.", delay: 2000 },
+        { speaker: 'Mira', text: "If you photograph her... promise me you'll show me. Please.", delay: 4000 },
+        { speaker: '', text: "[Child connection: Mira is the mother] [New quest: Photograph the child for Mira]", delay: 6000 }
+      ],
+      mira_ask: [
+        { speaker: 'Mira', text: "Her name was... was... I can't...", delay: 0 },
+        { speaker: '', text: "She stares at her hands. When she looks up, her expression has changed.", delay: 2000 },
+        { speaker: 'Mira', text: "You'll find her. She finds everyone, eventually.", delay: 4000 },
+        { speaker: '', text: "[Mira's memory is unstable] [The child is connected to her]", delay: 6000 }
+      ]
+    }
+  },
+  photo_dealer: {
+    name: 'The Photo Dealer',
+    title: 'Keeper of Old Images',
+    description: 'Sells photographs of Vesper from before it was built. Some contain you.',
+    schedule: { day: ['photo_shop'], night: ['photo_shop'] },
+    dialogues: {
+      first_meeting: [
+        { speaker: 'The Photo Dealer', text: "Ah. You have the camera. Good.", delay: 0 },
+        { speaker: 'The Photo Dealer', text: "These photographs — they're from before Vesper. Before the color changed.", delay: 2000 },
+        { speaker: '', text: "He shows you a photograph. In it, you recognize the street outside. But the date says 1923.", delay: 4000 },
+        { speaker: '', text: "And standing in the photograph, looking directly at the camera... is you.", delay: 6000 },
+        { speaker: 'The Photo Dealer', text: "You've been here before. Many times. You just don't remember.", delay: 8000 },
+        { speaker: '', text: "What do you do?", choices: [
+          { text: "Take the photograph of yourself.", next: 'dealer_take' },
+          { text: "This is impossible. Explain.", next: 'dealer_explain' },
+          { text: "What happens if I remember?", next: 'dealer_remember' }
+        ]}
+      ],
+      dealer_take: [
+        { speaker: '', text: "You take the photograph. It feels warm in your hands.", delay: 0 },
+        { speaker: 'The Photo Dealer', text: "Keep it safe. Photographs are the only things that don't change here.", delay: 2000 },
+        { speaker: 'The Photo Dealer', text: "...Mostly.", delay: 4000 },
+        { speaker: '', text: "[Evidence collected: Photo dated before your birth] [Photo integrity uncertain]", delay: 5500 }
+      ],
+      dealer_explain: [
+        { speaker: 'The Photo Dealer', text: "Nothing here is impossible. That's the problem.", delay: 0 },
+        { speaker: 'The Photo Dealer', text: "Vesper doesn't follow the rules you remember. It has its own rules.", delay: 2000 },
+        { speaker: 'The Photo Dealer', text: "The camera shows you the real Vesper. What you see with your eyes is... edited.", delay: 4000 },
+        { speaker: '', text: "[World understanding increased] [The camera reveals truth]", delay: 6000 }
+      ],
+      dealer_remember: [
+        { speaker: 'The Photo Dealer', text: "Remembering is dangerous.", delay: 0 },
+        { speaker: '', text: "He pauses. The light in the shop flickers.", delay: 1500 },
+        { speaker: 'The Photo Dealer', text: "Last time you remembered, the city lost three people. They're in the photographs now.", delay: 3000 },
+        { speaker: 'The Photo Dealer', text: "Standing in the background. Smiling. But they're not real anymore.", delay: 5500 },
+        { speaker: '', text: "[WARNING: Remembering has consequences] [Previous cycles confirmed]", delay: 7500 }
+      ]
+    }
+  },
+  child_distant: {
+    name: 'The Child',
+    title: '???',
+    description: 'It appears in impossible places. Each time, it is closer.',
+    schedule: { day: ['square', 'window_view'], night: ['hallway'] },
+    dialogues: {
+      first_sighting: [
+        { speaker: '', text: "A child stands across the street. Motionless. Watching.", delay: 0 },
+        { speaker: '', text: "When you raise the camera...", delay: 1500 },
+        { speaker: '', text: "[Child_closeness: 1/7] [The child will appear closer each time]", delay: 3000 }
+      ]
+    }
+  },
+  child_window: {
+    name: 'The Child (Outside)',
+    title: '???',
+    description: 'Visible from your window. Standing where no one could stand.',
+    schedule: { day: ['window_view'], night: ['window_view'] },
+    dialogues: {
+      window_watch: [
+        { speaker: '', text: "The child is outside your window. On the fourth floor. There is no ledge.", delay: 0 },
+        { speaker: '', text: "It tilts its head. As if listening to something you can't hear.", delay: 2000 },
+        { speaker: '', text: "[Photograph to record] [Child_closeness increasing]", delay: 4000 }
+      ]
+    }
+  },
+  old_woman: {
+    name: 'The Old Woman',
+    title: 'Lobby Resident',
+    description: 'Sits in the lobby. Always. She remembers things differently.',
+    schedule: { day: ['ground_floor'], night: ['ground_floor'] },
+    dialogues: {
+      first_meeting: [
+        { speaker: 'Old Woman', text: "Another one. You always arrive on a Tuesday.", delay: 0 },
+        { speaker: '', text: "Today is not Tuesday.", delay: 1500 },
+        { speaker: 'Old Woman', text: "Isn't it?", delay: 3000 },
+        { speaker: '', text: "She smiles. Her eyes are completely clear. Not a single clouded spot.", delay: 4500 },
+        { speaker: '', text: "In a city where everyone seems slightly faded, her eyes are the most real thing you've seen.", delay: 6500 },
+        { speaker: '', text: "What do you ask?", choices: [
+          { text: "How many times have I arrived here?", next: 'ow_cycles' },
+          { text: "Why do you sit here?", next: 'ow_sit' },
+          { text: "Do you know what happened to the color red?", next: 'ow_red' }
+        ]}
+      ],
+      ow_cycles: [
+        { speaker: 'Old Woman', text: "Oh, many times. But you never remember.", delay: 0 },
+        { speaker: 'Old Woman', text: "The camera helps. But it changes things too. That's the trick of it.", delay: 2000 },
+        { speaker: '', text: "[Confirmed: multiple cycles] [Camera affects reality]", delay: 4000 }
+      ],
+      ow_sit: [
+        { speaker: 'Old Woman', text: "Someone has to watch the door. Otherwise it opens.", delay: 0 },
+        { speaker: '', text: "She gestures to the front door. It looks perfectly normal.", delay: 2000 },
+        { speaker: 'Old Woman', text: "You'll hear it tonight. The knocking. Don't open it unless you're ready.", delay: 4000 },
+        { speaker: '', text: "[WARNING: Night event foreshadowed]", delay: 6000 }
+      ],
+      ow_red: [
+        { speaker: 'Old Woman', text: "Red...", delay: 0 },
+        { speaker: '', text: "For the first time, her certainty wavers.", delay: 1000 },
+        { speaker: 'Old Woman', text: "Red was the first color. Before green. Before everything.", delay: 2500 },
+        { speaker: 'Old Woman', text: "Someone took it away. Or... someone decided it shouldn't exist.", delay: 4500 },
+        { speaker: 'Old Woman', text: "Your camera can find it. But finding it... changes things.", delay: 6500 },
+        { speaker: '', text: "[The color red: suppressed by unknown force] [Camera can detect it]", delay: 8500 }
+      ]
+    }
+  },
+  nurse_shadow: {
+    name: 'The Shadow Nurse',
+    title: 'Hospital Entity',
+    description: 'She moves between beds. In photos, she has no shadow.',
+    schedule: { day: ['hospital'], night: ['hospital'] },
+    dialogues: {
+      encounter: [
+        { speaker: '', text: "A figure in white moves between the empty beds.", delay: 0 },
+        { speaker: '', text: "She doesn't acknowledge you. She's checking beds that have no patients.", delay: 2000 },
+        { speaker: '', text: "In the camera viewfinder, she has no shadow. But the bed she touches casts one.", delay: 4000 },
+        { speaker: '', text: "[Phenomenon detected: The Second Shadow] [Photograph to document]", delay: 6000 }
+      ]
+    }
+  },
+  shadow_man: {
+    name: 'Shadow Man',
+    title: 'Subway Dweller',
+    description: 'He lives in the tunnel. He says the trains still run. Underground.',
+    schedule: { day: ['subway'], night: ['subway'] },
+    dialogues: {
+      encounter: [
+        { speaker: 'Shadow Man', text: "You shouldn't be down here. But then, neither should I.", delay: 0 },
+        { speaker: 'Shadow Man', text: "The trains still run. You can't see them. But you can hear them.", delay: 2000 },
+        { speaker: '', text: "You listen. In the silence, a distant rumble. Like breathing.", delay: 4000 },
+        { speaker: 'Shadow Man', text: "They go to places Vesper doesn't have anymore. Places that were... removed.", delay: 6000 },
+        { speaker: '', text: "[Location: Sealed District may be accessible via subway]", delay: 8000 }
+      ]
+    }
+  },
+  receptionist: {
+    name: 'The Receptionist',
+    title: 'Hotel Staff',
+    description: 'She never blinks. Room 9 doesn\'t exist on any floor plan.',
+    schedule: { day: ['hotel'], night: ['hotel'] },
+    dialogues: {
+      encounter: [
+        { speaker: 'Receptionist', text: "Welcome. We have rooms available. Everything except the ninth floor.", delay: 0 },
+        { speaker: '', text: "She doesn't blink. You count. Thirty seconds. Not once.", delay: 2000 },
+        { speaker: 'Receptionist', text: "Room 9 was sealed years ago. There is no Room 9. Is there?", delay: 4000 },
+        { speaker: '', text: "Her smile doesn't change.", delay: 6000 },
+        { speaker: '', text: "What do you ask?", choices: [
+          { text: "What happened in Room 9?", next: 'rec_room9' },
+          { text: "Can I see the floor plan?", next: 'rec_plan' },
+          { text: "How long have you worked here?", next: 'rec_time' }
+        ]}
+      ],
+      rec_room9: [
+        { speaker: 'Receptionist', text: "Nothing happened in Room 9. Because Room 9 doesn't exist.", delay: 0 },
+        { speaker: '', text: "She says this with the confidence of someone stating a law of physics.", delay: 2000 },
+        { speaker: '', text: "[Room 9: access requires special conditions]", delay: 4000 }
+      ],
+      rec_plan: [
+        { speaker: '', text: "She slides a floor plan across the desk. Rooms 1-8, then 10-16.", delay: 0 },
+        { speaker: '', text: "If you photograph it, the numbers blur where 9 should be.", delay: 2000 },
+        { speaker: '', text: "[Evidence: Floor plan photographed — Room 9 erased from image]", delay: 4000 }
+      ],
+      rec_time: [
+        { speaker: 'Receptionist', text: "Time doesn't work the same way here.", delay: 0 },
+        { speaker: 'Receptionist', text: "I think I've always been here. I think I'll always be here.", delay: 2000 },
+        { speaker: '', text: "For a moment, her image flickers. Like a photograph being developed.", delay: 4000 },
+        { speaker: '', text: "[Phenomenon: The Unphotographable — the Receptionist may not be real]", delay: 6000 }
+      ]
+    }
+  },
+  gardener: {
+    name: 'The Gardener',
+    title: 'Greenhouse Keeper',
+    description: 'Tends plants that shouldn\'t exist. They grow toward the camera.',
+    schedule: { day: ['greenhouse'], night: ['greenhouse'] },
+    dialogues: {
+      encounter: [
+        { speaker: 'The Gardener', text: "Careful where you step. They can feel you.", delay: 0 },
+        { speaker: '', text: "The plants are spiraling. None of them are green — they're shades of magenta, pale yellow, translucent blue.", delay: 2000 },
+        { speaker: 'The Gardener', text: "These are the real colors of Vesper. Green is just what people expect to see.", delay: 4000 },
+        { speaker: '', text: "[The plants react to the camera] [True colors of Vesper: different from perceived]", delay: 6000 }
+      ]
+    }
+  },
+  teacher_voice: {
+    name: 'The Teacher',
+    title: 'Voice Only',
+    description: 'You never see her. Only hear her from empty classrooms.',
+    schedule: { day: ['school'], night: ['school'] },
+    dialogues: {
+      encounter: [
+        { speaker: '', text: "The classroom is empty. But the chalk is writing by itself.", delay: 0 },
+        { speaker: '', text: "IT REMEMBERS WHAT YOU FORGET", delay: 1500 },
+        { speaker: '', text: "A woman's voice, from everywhere and nowhere:", delay: 3000 },
+        { speaker: 'The Teacher (voice)', text: "Today's lesson: What happens when a city decides one of its residents doesn't exist?", delay: 4500 },
+        { speaker: '', text: "[Phenomenon: The Borrowed Face — information delivery through impossible means]", delay: 7000 }
+      ]
+    }
+  },
+  blocked_figure: {
+    name: 'The Blocked Figure',
+    title: 'Sealed District',
+    description: 'Stands behind the barrier. Never moves. Faces away from you.',
+    schedule: { day: ['sealed_district'], night: ['sealed_district'] },
+    dialogues: {
+      encounter: [
+        { speaker: '', text: "A figure stands behind the barrier, facing into the sealed district.", delay: 0 },
+        { speaker: '', text: "It doesn't respond to your voice. It doesn't move at all.", delay: 2000 },
+        { speaker: '', text: "When you photograph it from behind, the photo shows it facing you.", delay: 4000 },
+        { speaker: '', text: "Its face is your face.", delay: 5500 },
+        { speaker: '', text: "[Phenomenon: The Borrowed Face] [WARNING: Self-identity under threat]", delay: 7000 }
+      ]
+    }
+  },
+  the_original: {
+    name: 'The Original',
+    title: '???',
+    description: 'Found in the room between photographs. The truth, or another layer?',
+    schedule: { day: ['secret_room'], night: ['secret_room'] },
+    dialogues: {
+      encounter: [
+        { speaker: '', text: "The room is a perfect copy of Apartment 407.", delay: 0 },
+        { speaker: '', text: "Sitting at the table is... you.", delay: 1500 },
+        { speaker: '', text: "Not a reflection. Not a double. You.", delay: 3000 },
+        { speaker: 'The Original', text: "You've been the photograph all along.", delay: 4500 },
+        { speaker: 'The Original', text: "I'm the one who takes the pictures. You're the one in them.", delay: 6500 },
+        { speaker: '', text: "[FINAL TRUTH — or is it?] [Ending conditions met]", delay: 8500 }
+      ]
+    }
+  },
+  passerby: {
+    name: 'A passerby',
+    title: 'Citizen',
+    description: 'Walks the streets of Vesper. Like everyone else, never mentions red.',
+    dialogues: {
+      generic: [
+        { speaker: 'Passerby', text: "Nice day. Same as yesterday. Same as tomorrow.", delay: 0 }
+      ],
+      about_red: [
+        { speaker: '', text: "You ask about the color red.", delay: 0 },
+        { speaker: 'Passerby', text: "...", delay: 0 },
+        { speaker: '', text: "They stop. Exactly 2.4 seconds pass.", delay: 2400 },
+        { speaker: 'Passerby', text: "Red is what?", delay: 3400 },
+        { speaker: '', text: "They smile and continue walking as if nothing happened.", delay: 5000 }
+      ]
+    }
+  }
+};
+
+// ==================== HORROR PHENOMENA ====================
+const Phenomena = {
+  borrowed_face: {
+    name: 'The Borrowed Face',
+    description: 'An entity that copies NPC appearances. Imperfect.',
+    triggers: ['elias_photo_anomaly', 'blocked_figure'],
+    cameraSigns: ['wrong_blink', 'wrong_expression', 'knows_unspoken'],
+  },
+  empty_room: {
+    name: 'The Empty Room',
+    description: 'A room that appears in different locations. Contains evidence of your choices.',
+    triggers: ['hallway_extra_door', 'hotel_room_9'],
+    cameraSigns: ['shows_previous_choices', 'map_mismatch'],
+  },
+  second_shadow: {
+    name: 'The Second Shadow',
+    description: 'A shadow that lags behind its owner. Then acts independently.',
+    triggers: ['nurse_shadow', 'own_shadow_lag'],
+    cameraSigns: ['shadow_mismatch', 'independent_shadow'],
+  },
+  unphotographable: {
+    name: 'The Unphotographable',
+    description: 'Never appears directly in photos. Each photo attempt erases someone.',
+    triggers: ['photo_dealer_glitch', 'receptionist_vanish'],
+    cameraSigns: ['subject_absent', 'someone_missing'],
+  },
+  color_leak: {
+    name: 'The Color That Should Not Exist',
+    description: 'Red appears in photographs. It changes reality.',
+    triggers: ['red_in_photo', 'door_color_change'],
+    cameraSigns: ['unnamed_color', 'surrounding_shift'],
+  },
+  time_loop: {
+    name: 'The Loop',
+    description: 'Events repeat with small variations. You\'ve been here before.',
+    triggers: ['ow_tuesday', 'deja_vu_events'],
+    cameraSigns: ['same_photo_different_day', 'repeated_scene'],
+  },
+  child_approach: {
+    name: 'The Approaching Child',
+    description: 'Each time photographed, the child is closer.',
+    triggers: ['child_distant', 'child_window', 'child_hallway', 'child_bed'],
+    cameraSigns: ['closer_each_time', 'impossible_position'],
+  },
+  memory_photo: {
+    name: 'The Memory Photograph',
+    description: 'Photos change after sleeping. People vanish. New photos appear.',
+    triggers: ['sleep_photo_change', 'unexplained_new_photo'],
+    cameraSigns: ['altered_after_sleep', 'new_photos_appear'],
+  }
+};
+
+// ==================== PHOTO SYSTEM ====================
+const PhotoSystem = {
+  photos: [],
+
+  createPhoto(location, anomalies=[], hasRed=false, subjects=[]) {
+    State.totalPhotosTaken++;
+    const photo = {
+      id: Date.now() + Math.random(),
+      location: location,
+      day: State.day,
+      time: State.getTimeString(),
+      anomalies: anomalies,
+      hasRed: hasRed,
+      subjects: subjects,
+      viewCount: 0,
+      analyzed: false,
+      altered: false,
+      cameraMode: State.cameraMode,
+      timestamp: Date.now()
+    };
+    if (hasRed) {
+      State.photosWithRed++;
+      State.reality_distortion += 5;
+    }
+    this.photos.push(photo);
+    State.photos.push(photo);
+    State.film = Math.max(0, State.film - 1);
+    Audio_.playCameraShutter();
+    Game.notify('Photo captured');
+    return photo;
+  },
+
+  generateAnomaliesForLocation(loc) {
+    const anomalies = [];
+    const r = Math.random();
+    const r2 = Math.random();
+    const distort = State.reality_distortion / 100;
+
+    if (loc === 'apartment_407') {
+      if (r < 0.3 + distort) anomalies.push('extra_object');
+      if (State.day >= 3 && r2 < 0.5) anomalies.push('shadow_person');
+      if (State.child_closeness >= 4) anomalies.push('child_on_bed');
+      if (State.mirrorReflection === false) anomalies.push('no_reflection');
+      if (State.day >= 5 && r < 0.4) anomalies.push('text_appears');
+      if (State.hasFlag('elias_photo_reacted') && r2 < 0.3) anomalies.push('elias_shadow');
+    } else if (loc === 'hallway') {
+      if (r < 0.4 + distort) anomalies.push('extra_door');
+      if (State.trust.elias < 30) anomalies.push('elias_shadow');
+      if (r2 < 0.2 + distort * 0.5) anomalies.push('symbols_on_wall');
+      if (State.day >= 4) anomalies.push('wrong_architecture');
+    } else if (loc === 'street') {
+      if (r < 0.3) anomalies.push('figure_behind_people');
+      if (State.child_closeness >= 2) anomalies.push('child_closer');
+      if (State.peopleDisappeared > 0) anomalies.push('removed_subject');
+      if (State.day >= 3 && r2 < 0.3) anomalies.push('color_shift');
+    } else if (loc === 'hospital') {
+      anomalies.push('extra_beds');
+      if (State.day >= 4) anomalies.push('patients_in_photo');
+      if (State.day >= 5) anomalies.push('shadow_person');
+    } else if (loc === 'photo_shop') {
+      if (r < 0.3) anomalies.push('text_appears');
+      if (State.hasFlag('dealer_met') && r2 < 0.4) anomalies.push('color_shift');
+    } else if (loc === 'subway') {
+      anomalies.push('wrong_architecture');
+      if (State.day >= 5) anomalies.push('unexplained_figure');
+    } else if (loc === 'window_view') {
+      if (State.child_closeness >= 1) anomalies.push('child_closer');
+      if (State.day >= 4) anomalies.push('shadow_person');
+    } else {
+      if (r < 0.2 + distort) anomalies.push('unexplained_figure');
+      if (r2 < 0.3 + distort) anomalies.push('wrong_architecture');
+      if (State.day >= 3 && r < 0.2) anomalies.push('new_figure');
+    }
+
+    // Red color chance increases with progression
+    let hasRed = false;
+    if (State.day >= 4 && Math.random() < 0.05 + distort * 0.1) {
+      hasRed = true;
+    }
+    if (State.hasFlag('red_unlocked') && Math.random() < 0.15) {
+      hasRed = true;
+    }
+    if (State.hasFlag('red_analyzed') && Math.random() < 0.2) {
+      hasRed = true;
+    }
+
+    // Ensure at least one anomaly if distortion is high
+    if (distort > 0.5 && anomalies.length === 0) {
+      anomalies.push('wrong_architecture');
+    }
+
+    return { anomalies, hasRed };
+  },
+
+  viewPhoto(photo) {
+    photo.viewCount = (photo.viewCount || 0) + 1;
+    State.currentPhotoViewing = photo;
+
+    // Photos can change on subsequent views
+    if (photo.viewCount === 3 && !photo.altered && Math.random() < 0.3 + State.reality_distortion / 200) {
+      this.alterPhoto(photo);
+    }
+
+    this.showPhotoDetail(photo);
+  },
+
+  alterPhoto(photo) {
+    photo.altered = true;
+    const alterations = ['new_figure', 'removed_subject', 'color_shift', 'text_appears', 'object_moved'];
+    const alteration = alterations[Math.floor(Math.random() * alterations.length)];
+    photo.anomalies.push(alteration);
+    State.photoChanges.push({ photoId: photo.id, alteration, viewCount: photo.viewCount });
+  },
+
+  showPhotoDetail(photo) {
+    const canvas = document.getElementById('photo-detail-canvas');
+    const ctx = canvas.getContext('2d');
+    const info = document.getElementById('photo-detail-info');
+
+    canvas.width = canvas.offsetWidth * 2;
+    canvas.height = canvas.offsetHeight * 2;
+    ctx.scale(2, 2);
+    const w = canvas.offsetWidth;
+    const h = canvas.offsetHeight;
+
+    // Render the photo
+    Renderer.drawScene(ctx, photo.location, w, h, true, photo);
+
+    // Draw red elements if present
+    if (photo.hasRed) {
+      ctx.globalAlpha = 0.3;
+      ctx.fillStyle = '#8b0000';
+      ctx.fillRect(w * 0.3, h * 0.2, w * 0.1, h * 0.5);
+      ctx.globalAlpha = 1;
+    }
+
+    // Draw anomaly indicators
+    photo.anomalies.forEach((a, i) => {
+      ctx.strokeStyle = '#b8a04080';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 4]);
+      ctx.strokeRect(w * (0.2 + i * 0.15), h * 0.3, w * 0.12, h * 0.2);
+      ctx.setLineDash([]);
+    });
+
+    // View count indicator
+    ctx.fillStyle = '#7affb260';
+    ctx.font = '10px Courier New';
+    ctx.fillText(`Viewed: ${photo.viewCount}x`, 8, h - 8);
+
+    // Photo info
+    let infoText = `<b>Location:</b> ${photo.location}<br>`;
+    infoText += `<b>Day ${photo.day}</b> — ${photo.time}<br>`;
+    infoText += `<b>Subjects:</b> ${photo.subjects.length > 0 ? photo.subjects.join(', ') : 'None visible'}<br>`;
+    infoText += `<b>Anomalies:</b> ${photo.anomalies.length > 0 ? photo.anomalies.join(', ') : 'None detected'}`;
+    if (photo.altered) infoText += '<br><span style="color:#b8a040">⚠ This photo has been altered</span>';
+    if (photo.hasRed) infoText += '<br><span style="color:#8b0000">⚠ Contains the unnamed color</span>';
+    info.innerHTML = infoText;
+
+    document.getElementById('photo-detail').classList.add('active');
+  },
+
+  analyzePhoto() {
+    const photo = State.currentPhotoViewing;
+    if (!photo) return;
+    photo.analyzed = true;
+    State.analyzedPhotos.push(photo.id);
+    State.evidence_collected++;
+
+    let findings = [];
+    if (photo.anomalies.length > 0) {
+      findings.push('Anomalies detected: ' + photo.anomalies.join(', '));
+    }
+    if (photo.hasRed) {
+      findings.push('The unnamed color is present. Surrounding colors have shifted subtly.');
+      State.flags['red_analyzed'] = true;
+    }
+    if (photo.subjects.includes('elias')) {
+      findings.push('Elias is present. In the photo, he appears to be holding a camera identical to yours.');
+    }
+    if (photo.anomalies.includes('child_on_bed') || photo.anomalies.includes('child_closer')) {
+      findings.push('The child is visible. It appears to be ' + (State.child_closeness * 10) + '% closer than before.');
+    }
+
+    Game.addNote(`Photo analyzed (${photo.location}, Day ${photo.day}): ${findings.join(' ') || 'No significant findings.'}`);
+    Game.notify('Analysis complete');
+    Audio_.playUnsettling();
+    this.showPhotoDetail(photo);
+  },
+
+  destroyPhoto() {
+    const photo = State.currentPhotoViewing;
+    if (!photo) return;
+    const idx = State.photos.findIndex(p => p.id === photo.id);
+    if (idx >= 0) {
+      State.photos.splice(idx, 1);
+      State.destroyedPhotos.push(photo.id);
+      State.deletedEvidence++;
+      if (photo.hasRed) State.reality_distortion -= 10;
+    }
+    this.photos = this.photos.filter(p => p.id !== photo.id);
+    this.closeDetail();
+    Game.notify('Photo destroyed');
+    Audio_.playTone(100, 0.5, 'sawtooth', 0.2);
+  },
+
+  closeDetail() {
+    document.getElementById('photo-detail').classList.remove('active');
+    State.currentPhotoViewing = null;
+  }
+};
+
+// ==================== CAMERA ====================
+const Camera = {
+  isOpen: false,
+
+  openCamera() {
+    if (State.film <= 0) {
+      Game.notify('No film remaining');
+      return;
+    }
+    this.isOpen = true;
+    document.getElementById('camera-overlay').classList.add('active');
+    document.getElementById('hud').classList.remove('active');
+    Audio_.playElectricHum();
+    this.updateViewfinder();
+  },
+
+  closeCamera() {
+    this.isOpen = false;
+    document.getElementById('camera-overlay').classList.remove('active');
+    document.getElementById('hud').classList.add('active');
+  },
+
+  toggleMode() {
+    State.cameraMode = (State.cameraMode + 1) % 3;
+    const modes = ['OBSERVE', 'VIEWFINDER', 'CAPTURE'];
+    document.getElementById('cam-mode').textContent = modes[State.cameraMode];
+    this.updateViewfinder();
+    Audio_.playTone(800 + State.cameraMode * 200, 0.1, 'sine', 0.1);
+  },
+
+  updateViewfinder() {
+    const canvas = document.getElementById('camera-canvas');
+    const viewfinder = document.getElementById('camera-viewfinder');
+    const w = viewfinder.offsetWidth || 300;
+    const h = viewfinder.offsetHeight || 400;
+    canvas.width = w * 2;
+    canvas.height = h * 2;
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
+    const ctx = canvas.getContext('2d');
+    ctx.scale(2, 2);
+
+    // Draw scene through camera (with anomalies visible)
+    Renderer.drawScene(ctx, State.location, w, h, true);
+
+    document.getElementById('cam-loc').textContent = Locations[State.location]?.name || State.location;
+    document.getElementById('cam-film').textContent = `FILM: ${State.film}`;
+    document.getElementById('cam-anomaly').textContent = State.reality_distortion > 20 ? '◉ ANOMALY' : '◉ READY';
+  },
+
+  takePhoto() {
+    if (State.film <= 0) {
+      Game.notify('No film remaining');
+      return;
+    }
+
+    const loc = State.location;
+    const { anomalies, hasRed } = PhotoSystem.generateAnomaliesForLocation(loc);
+
+    // Determine subjects
+    const subjects = [];
+    const locData = Locations[loc];
+    if (locData && locData.npcs) {
+      locData.npcs.forEach(npc => {
+        if (Characters[npc] && Math.random() < 0.7) {
+          subjects.push(Characters[npc].name);
+        }
+      });
+    }
+
+    const photo = PhotoSystem.createPhoto(loc, anomalies, hasRed, subjects);
+
+    // Trigger NPC reactions
+    this.triggerPhotoReactions(loc, subjects, photo);
+
+    // Update viewfinder
+    this.updateViewfinder();
+
+    // Special events from photography
+    if (State.totalPhotosTaken === 1) {
+      Game.addNote('First photograph taken. The camera shows things that eyes cannot see.');
+    }
+    if (hasRed && !State.hasFlag('red_seen')) {
+      State.addFlag('red_seen');
+      Game.addNote('⚠ The unnamed color appeared in a photograph. The surrounding colors shifted when it appeared.');
+      State.reality_distortion += 10;
+    }
+  },
+
+  triggerPhotoReactions(loc, subjects, photo) {
+    if (subjects.includes('Elias')) {
+      State.eliasKnows = true;
+      if (!State.eventsTriggered.includes('elias_photo_reacted')) {
+        State.eventsTriggered.push('elias_photo_reacted');
+        setTimeout(() => {
+          Game.startDialogue('elias', 'after_photo_him');
+        }, 500);
+      }
+    }
+
+    if (subjects.some(s => s.includes('Child'))) {
+      State.child_closeness = Math.min(7, State.child_closeness + 1);
+      if (State.child_closeness >= 7 && !State.hasFlag('child_in_room')) {
+        State.addFlag('child_in_room');
+        Game.addNote('⚠ The child was photographed inside your apartment. It was on the bed.');
+      }
+    }
+  }
+};
+
+// ==================== RENDERER ====================
+const Renderer = {
+  canvas: null,
+  ctx: null,
+  animFrame: 0,
+  particles: [],
+  glitchTimer: 0,
+
+  init() {
+    this.canvas = document.getElementById('main-canvas');
+    this.ctx = this.canvas.getContext('2d');
+    this.resize();
+    window.addEventListener('resize', () => this.resize());
+    this.startLoop();
+  },
+
+  resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    this.canvas.width = window.innerWidth * dpr;
+    this.canvas.height = window.innerHeight * dpr;
+    this.ctx.scale(dpr, dpr);
+    this.w = window.innerWidth;
+    this.h = window.innerHeight;
+  },
+
+  startLoop() {
+    const loop = () => {
+      this.animFrame++;
+      if (!Camera.isOpen && document.getElementById('hud').classList.contains('active')) {
+        this.draw();
+      }
+      requestAnimationFrame(loop);
+    };
+    loop();
+  },
+
+  draw() {
+    const ctx = this.ctx;
+    const w = this.w;
+    const h = this.h;
+    const loc = Locations[State.location];
+    if (!loc) return;
+
+    // Background
+    this.drawBackground(ctx, w, h, loc);
+
+    // Location-specific elements
+    this.drawLocationElements(ctx, w, h, loc);
+
+    // NPCs
+    this.drawNPCs(ctx, w, h, loc);
+
+    // Hotspots
+    this.drawHotspots(ctx, w, h, loc);
+
+    // Atmospheric effects
+    this.drawAtmosphere(ctx, w, h, loc);
+
+    // HUD overlay elements
+    this.drawOverlayEffects(ctx, w, h);
+  },
+
+  drawScene(ctx, location, w, h, throughCamera = false, photo = null) {
+    const loc = Locations[location];
+    if (!loc) return;
+
+    // Clear
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, w, h);
+
+    if (throughCamera) {
+      // Camera has different visual treatment
+      ctx.filter = 'contrast(1.2) saturate(0.8)';
+
+      // Through camera, more anomalies visible
+      this.drawBackground(ctx, w, h, loc, true);
+      this.drawLocationElements(ctx, w, h, loc, true);
+
+      // Draw anomalies visible only through camera
+      if (photo) {
+        this.drawPhotoAnomalies(ctx, w, h, photo);
+      } else {
+        this.drawCameraAnomalies(ctx, w, h, location);
+      }
+
+      ctx.filter = 'none';
+
+      // Viewfinder overlay
+      ctx.strokeStyle = '#7affb220';
+      ctx.lineWidth = 0.5;
+      // Grid lines
+      for (let i = 1; i < 3; i++) {
+        ctx.beginPath();
+        ctx.moveTo(w * i / 3, 0);
+        ctx.lineTo(w * i / 3, h);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(0, h * i / 3);
+        ctx.lineTo(w, h * i / 3);
+        ctx.stroke();
+      }
+
+      // Scan lines
+      ctx.fillStyle = '#7affb208';
+      for (let y = 0; y < h; y += 3) {
+        ctx.fillRect(0, y, w, 1);
+      }
+    } else {
+      this.drawBackground(ctx, w, h, loc);
+      this.drawLocationElements(ctx, w, h, loc);
+    }
+  },
+
+  drawBackground(ctx, w, h, loc, throughCamera = false) {
+    // Base color
+    const baseColor = loc.color || '#0a0a0a';
+    ctx.fillStyle = baseColor;
+    ctx.fillRect(0, 0, w, h);
+
+    // Time-based lighting
+    const isNight = State.isNight();
+    const timeProgress = (State.hour + State.minute / 60) / 24;
+
+    // Sickly green ambient
+    const greenIntensity = isNight ? 0.15 : 0.25;
+    const gradient = ctx.createRadialGradient(w * 0.5, h * 0.3, 0, w * 0.5, h * 0.3, w * 0.8);
+    gradient.addColorStop(0, `rgba(122, 255, 178, ${greenIntensity})`);
+    gradient.addColorStop(1, 'rgba(10, 26, 10, 0)');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, w, h);
+
+    // Through camera: magenta/pink tones increase
+    if (throughCamera) {
+      const magentaGrad = ctx.createRadialGradient(w * 0.7, h * 0.6, 0, w * 0.7, h * 0.6, w * 0.5);
+      magentaGrad.addColorStop(0, `rgba(180, 60, 180, ${0.05 + State.reality_distortion / 500})`);
+      magentaGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = magentaGrad;
+      ctx.fillRect(0, 0, w, h);
+    }
+
+    // Walls/floor perspective
+    ctx.fillStyle = isNight ? '#050a05' : '#0f1a10';
+    ctx.fillRect(0, h * 0.65, w, h * 0.35);
+
+    // Floor line
+    ctx.strokeStyle = '#1a2a1a';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, h * 0.65);
+    ctx.lineTo(w, h * 0.65);
+    ctx.stroke();
+  },
+
+  drawLocationElements(ctx, w, h, loc, throughCamera = false) {
+    const locId = Object.keys(Locations).find(k => Locations[k] === loc) || '';
+
+    switch (locId) {
+      case 'apartment_407':
+        this.drawApartment(ctx, w, h, throughCamera);
+        break;
+      case 'hallway':
+        this.drawHallway(ctx, w, h, throughCamera);
+        break;
+      case 'street':
+        this.drawStreet(ctx, w, h, throughCamera);
+        break;
+      case 'photo_shop':
+        this.drawPhotoShop(ctx, w, h, throughCamera);
+        break;
+      case 'hospital':
+        this.drawHospital(ctx, w, h, throughCamera);
+        break;
+      case 'square':
+        this.drawSquare(ctx, w, h, throughCamera);
+        break;
+      case 'subway':
+        this.drawSubway(ctx, w, h, throughCamera);
+        break;
+      case 'window_view':
+        this.drawWindowView(ctx, w, h, throughCamera);
+        break;
+      default:
+        this.drawGenericRoom(ctx, w, h, loc, throughCamera);
+    }
+  },
+
+  drawApartment(ctx, w, h, throughCamera) {
+    // Bed
+    ctx.fillStyle = '#1a2a1a';
+    ctx.fillRect(w * 0.05, h * 0.45, w * 0.25, h * 0.18);
+    ctx.fillStyle = '#2a3a2a';
+    ctx.fillRect(w * 0.05, h * 0.42, w * 0.08, h * 0.06);
+
+    // Table
+    ctx.fillStyle = '#1a1a15';
+    ctx.fillRect(w * 0.4, h * 0.48, w * 0.2, h * 0.12);
+    ctx.fillStyle = '#2a2a20';
+    ctx.fillRect(w * 0.42, h * 0.46, w * 0.05, h * 0.03);
+
+    // Window
+    ctx.fillStyle = State.isNight() ? '#0a1520' : '#1a3030';
+    ctx.fillRect(w * 0.7, h * 0.15, w * 0.2, h * 0.35);
+    ctx.strokeStyle = '#2a3a2a';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(w * 0.7, h * 0.15, w * 0.2, h * 0.35);
+    ctx.beginPath();
+    ctx.moveTo(w * 0.8, h * 0.15);
+    ctx.lineTo(w * 0.8, h * 0.5);
+    ctx.stroke();
+
+    // Mirror
+    if (State.mirrorReflection) {
+      ctx.fillStyle = '#1a1a2a';
+      ctx.fillRect(w * 0.35, h * 0.15, w * 0.08, h * 0.2);
+      ctx.strokeStyle = '#3a3a4a';
+      ctx.strokeRect(w * 0.35, h * 0.15, w * 0.08, h * 0.2);
+    } else {
+      // Mirror shows empty room
+      ctx.fillStyle = '#0a0a15';
+      ctx.fillRect(w * 0.35, h * 0.15, w * 0.08, h * 0.2);
+    }
+
+    // Camera on stand
+    ctx.fillStyle = '#3a3a3a';
+    ctx.fillRect(w * 0.55, h * 0.42, w * 0.04, h * 0.04);
+    ctx.fillStyle = '#2a2a2a';
+    ctx.fillRect(w * 0.555, h * 0.38, w * 0.03, h * 0.04);
+
+    if (throughCamera) {
+      // Through camera: the table might have extra objects
+      if (State.day >= 2) {
+        ctx.fillStyle = '#b8a04040';
+        ctx.beginPath();
+        ctx.arc(w * 0.48, h * 0.47, 6, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      // Shadow person in corner (only through camera)
+      if (State.day >= 3 && State.reality_distortion > 20) {
+        ctx.fillStyle = '#0a0a0a80';
+        ctx.fillRect(w * 0.85, h * 0.25, w * 0.08, h * 0.35);
+        // Elongated head
+        ctx.fillRect(w * 0.86, h * 0.15, w * 0.04, h * 0.12);
+      }
+    }
+  },
+
+  drawHallway(ctx, w, h, throughCamera) {
+    // Corridor perspective
+    ctx.fillStyle = '#0f1a10';
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(w * 0.3, h * 0.2);
+    ctx.lineTo(w * 0.3, h * 0.7);
+    ctx.lineTo(0, h);
+    ctx.fill();
+
+    ctx.fillStyle = '#0f1a10';
+    ctx.beginPath();
+    ctx.moveTo(w, 0);
+    ctx.lineTo(w * 0.7, h * 0.2);
+    ctx.lineTo(w * 0.7, h * 0.7);
+    ctx.lineTo(w, h);
+    ctx.fill();
+
+    // Doors
+    const doorCount = State.hallwayDoors;
+    for (let i = 0; i < doorCount; i++) {
+      const x = w * 0.35 + (i * w * 0.08);
+      ctx.fillStyle = '#1a1a15';
+      ctx.fillRect(x, h * 0.25, w * 0.06, h * 0.35);
+      ctx.fillStyle = '#2a2a20';
+      ctx.fillRect(x + w * 0.01, h * 0.27, w * 0.01, h * 0.04);
+
+      if (throughCamera && i === doorCount - 1 && State.day >= 3) {
+        // Extra door visible only through camera
+        ctx.fillStyle = '#3a2a4a40';
+        ctx.fillRect(x + w * 0.08, h * 0.25, w * 0.06, h * 0.35);
+      }
+    }
+
+    // Fluorescent lights
+    const flicker = Math.sin(this.animFrame * 0.1) > 0.3 ? 1 : 0.5;
+    ctx.fillStyle = `rgba(122, 255, 178, ${0.1 * flicker})`;
+    for (let i = 0; i < 3; i++) {
+      ctx.fillRect(w * (0.35 + i * 0.12), h * 0.05, w * 0.08, h * 0.02);
+    }
+
+    if (throughCamera) {
+      // Symbols on walls
+      if (State.reality_distortion > 15) {
+        ctx.fillStyle = '#b8a04020';
+        ctx.font = '14px Courier New';
+        ctx.fillText('◊ ◊ ◊', w * 0.4, h * 0.18);
+      }
+    }
+  },
+
+  drawStreet(ctx, w, h, throughCamera) {
+    // Buildings
+    for (let i = 0; i < 5; i++) {
+      const bh = h * (0.3 + Math.sin(i * 1.7) * 0.15);
+      ctx.fillStyle = `rgba(15, ${25 + i * 3}, ${15 + i * 2}, 0.9)`;
+      ctx.fillRect(w * i * 0.22, h * 0.1, w * 0.18, bh);
+
+      // Windows
+      for (let wy = 0; wy < 4; wy++) {
+        for (let wx = 0; wx < 2; wx++) {
+          const lit = Math.sin(i * 3 + wy * 2 + wx + this.animFrame * 0.01) > 0;
+          ctx.fillStyle = lit ? '#7affb215' : '#0a0f0a';
+          ctx.fillRect(w * (i * 0.22 + 0.03 + wx * 0.07), h * (0.15 + wy * 0.08), w * 0.04, h * 0.04);
+        }
+      }
+    }
+
+    // Street
+    ctx.fillStyle = '#0f150f';
+    ctx.fillRect(0, h * 0.65, w, h * 0.35);
+
+    // Streetlamp
+    ctx.fillStyle = '#2a3a2a';
+    ctx.fillRect(w * 0.15, h * 0.2, w * 0.01, h * 0.45);
+    const lampGlow = ctx.createRadialGradient(w * 0.155, h * 0.2, 0, w * 0.155, h * 0.2, w * 0.1);
+    lampGlow.addColorStop(0, 'rgba(122, 255, 178, 0.15)');
+    lampGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = lampGlow;
+    ctx.fillRect(0, 0, w, h);
+
+    if (throughCamera) {
+      // Figures behind people
+      ctx.fillStyle = '#0a0a0a40';
+      ctx.fillRect(w * 0.5, h * 0.35, w * 0.05, h * 0.25);
+      ctx.fillRect(w * 0.7, h * 0.3, w * 0.04, h * 0.3);
+    }
+  },
+
+  drawPhotoShop(ctx, w, h, throughCamera) {
+    // Shelves with photos
+    for (let row = 0; row < 4; row++) {
+      ctx.fillStyle = '#1a150f';
+      ctx.fillRect(w * 0.05, h * (0.1 + row * 0.15), w * 0.9, h * 0.02);
+
+      for (let col = 0; col < 6; col++) {
+        ctx.fillStyle = `rgba(${140 + row * 10}, ${120 + col * 5}, ${80}, 0.3)`;
+        ctx.fillRect(w * (0.08 + col * 0.14), h * (0.02 + row * 0.15), w * 0.1, h * 0.08);
+      }
+    }
+
+    // Counter
+    ctx.fillStyle = '#2a2015';
+    ctx.fillRect(w * 0.3, h * 0.55, w * 0.4, h * 0.08);
+
+    // Yellow tint
+    ctx.fillStyle = 'rgba(184, 160, 64, 0.03)';
+    ctx.fillRect(0, 0, w, h);
+  },
+
+  drawHospital(ctx, w, h, throughCamera) {
+    // Hospital beds
+    const bedCount = throughCamera ? 6 : 4;
+    for (let i = 0; i < bedCount; i++) {
+      const x = w * (0.1 + (i % 3) * 0.3);
+      const y = h * (0.35 + Math.floor(i / 3) * 0.25);
+      ctx.fillStyle = '#1a2020';
+      ctx.fillRect(x, y, w * 0.2, h * 0.08);
+      ctx.fillStyle = '#2a3030';
+      ctx.fillRect(x, y - h * 0.02, w * 0.03, h * 0.02);
+    }
+
+    // Overhead light
+    ctx.fillStyle = 'rgba(200, 220, 200, 0.05)';
+    ctx.beginPath();
+    ctx.arc(w * 0.5, h * 0.1, w * 0.05, 0, Math.PI * 2);
+    ctx.fill();
+  },
+
+  drawSquare(ctx, w, h, throughCamera) {
+    // Fountain (dry)
+    ctx.fillStyle = '#1a2020';
+    ctx.beginPath();
+    ctx.ellipse(w * 0.5, h * 0.55, w * 0.15, h * 0.08, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#2a3a3a';
+    ctx.stroke();
+
+    // Statue
+    ctx.fillStyle = '#2a2a2a';
+    ctx.fillRect(w * 0.48, h * 0.25, w * 0.04, h * 0.25);
+    ctx.beginPath();
+    ctx.arc(w * 0.5, h * 0.22, w * 0.03, 0, Math.PI * 2);
+    ctx.fill();
+    // Face worn smooth
+    ctx.fillStyle = '#3a3a3a';
+    ctx.beginPath();
+    ctx.arc(w * 0.5, h * 0.22, w * 0.02, 0, Math.PI * 2);
+    ctx.fill();
+  },
+
+  drawSubway(ctx, w, h, throughCamera) {
+    // Tunnel
+    ctx.fillStyle = '#050510';
+    ctx.beginPath();
+    ctx.moveTo(w * 0.2, 0);
+    ctx.lineTo(w * 0.35, h * 0.3);
+    ctx.lineTo(w * 0.35, h * 0.7);
+    ctx.lineTo(w * 0.2, h);
+    ctx.fill();
+
+    ctx.fillStyle = '#050510';
+    ctx.beginPath();
+    ctx.moveTo(w * 0.8, 0);
+    ctx.lineTo(w * 0.65, h * 0.3);
+    ctx.lineTo(w * 0.65, h * 0.7);
+    ctx.lineTo(w * 0.8, h);
+    ctx.fill();
+
+    // Tracks
+    ctx.strokeStyle = '#2a2a3a';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(w * 0.35, h * 0.7);
+    ctx.lineTo(w * 0.45, h * 0.5);
+    ctx.lineTo(w * 0.48, h * 0.3);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(w * 0.65, h * 0.7);
+    ctx.lineTo(w * 0.55, h * 0.5);
+    ctx.lineTo(w * 0.52, h * 0.3);
+    ctx.stroke();
+  },
+
+  drawWindowView(ctx, w, h, throughCamera) {
+    // Window frame
+    ctx.fillStyle = '#0a1510';
+    ctx.fillRect(0, 0, w, h);
+
+    // City view through window
+    const cityGrad = ctx.createLinearGradient(0, 0, 0, h);
+    cityGrad.addColorStop(0, '#0a2020');
+    cityGrad.addColorStop(1, '#051510');
+    ctx.fillStyle = cityGrad;
+    ctx.fillRect(w * 0.1, h * 0.05, w * 0.8, h * 0.85);
+
+    // Buildings in distance
+    for (let i = 0; i < 8; i++) {
+      const bh = h * (0.2 + Math.sin(i * 2.3) * 0.15);
+      ctx.fillStyle = `rgba(15, 30, 20, 0.7)`;
+      ctx.fillRect(w * (0.12 + i * 0.1), h * 0.4, w * 0.07, bh);
+    }
+
+    // The child (if closeness >= threshold)
+    if (State.child_closeness >= 1) {
+      const childDist = Math.max(0, 7 - State.child_closeness);
+      const childX = w * (0.3 + childDist * 0.05);
+      const childY = h * (0.5 - childDist * 0.03);
+      ctx.fillStyle = `rgba(100, 150, 200, ${0.1 + State.child_closeness * 0.05})`;
+      ctx.fillRect(childX, childY, w * 0.03, h * 0.08);
+      ctx.beginPath();
+      ctx.arc(childX + w * 0.015, childY - h * 0.01, w * 0.01, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Window frame overlay
+    ctx.strokeStyle = '#2a3a2a';
+    ctx.lineWidth = 4;
+    ctx.strokeRect(w * 0.08, h * 0.03, w * 0.84, h * 0.89);
+    ctx.beginPath();
+    ctx.moveTo(w * 0.5, h * 0.03);
+    ctx.lineTo(w * 0.5, h * 0.92);
+    ctx.stroke();
+  },
+
+  drawGenericRoom(ctx, w, h, loc, throughCamera) {
+    // Generic room with atmospheric details
+    ctx.fillStyle = '#0f150f';
+    ctx.fillRect(w * 0.05, h * 0.15, w * 0.9, h * 0.55);
+
+    // Door
+    ctx.fillStyle = '#1a1a15';
+    ctx.fillRect(w * 0.45, h * 0.2, w * 0.1, h * 0.4);
+    ctx.fillStyle = '#2a2a20';
+    ctx.fillRect(w * 0.53, h * 0.38, w * 0.015, h * 0.02);
+
+    // Ceiling light
+    const lightFlicker = Math.sin(this.animFrame * 0.08) * 0.3 + 0.7;
+    const ceilingGrad = ctx.createRadialGradient(w * 0.5, h * 0.1, 0, w * 0.5, h * 0.1, w * 0.3);
+    ceilingGrad.addColorStop(0, `rgba(122, 255, 178, ${0.04 * lightFlicker})`);
+    ceilingGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = ceilingGrad;
+    ctx.fillRect(0, 0, w, h);
+
+    if (throughCamera) {
+      // Additional details visible only through camera
+      if (State.reality_distortion > 20) {
+        // Faint symbols
+        ctx.fillStyle = '#b8a04010';
+        ctx.font = '10px Courier New';
+        ctx.fillText('◊', w * 0.2, h * 0.3);
+        ctx.fillText('△', w * 0.75, h * 0.25);
+      }
+    }
+  },
+
+  drawNPCs(ctx, w, h, loc) {
+    const locData = loc;
+    if (!locData.npcs) return;
+
+    locData.npcs.forEach((npcId, idx) => {
+      const char = Characters[npcId];
+      if (!char) return;
+
+      const x = w * (0.3 + idx * 0.2);
+      const y = h * 0.35;
+
+      // Simple character representation
+      ctx.fillStyle = '#2a3a2a';
+      // Body
+      ctx.fillRect(x - w * 0.02, y, w * 0.04, h * 0.25);
+      // Head
+      ctx.beginPath();
+      ctx.arc(x, y - h * 0.02, w * 0.02, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Name label
+      ctx.fillStyle = '#5a8a6a';
+      ctx.font = '10px Courier New';
+      ctx.textAlign = 'center';
+      ctx.fillText(char.name, x, y + h * 0.28);
+      ctx.textAlign = 'left';
+
+      // Special visual for Mira (faceless in camera)
+      if (npcId === 'mira' && Camera.isOpen) {
+        ctx.fillStyle = '#b8a040';
+        ctx.beginPath();
+        ctx.arc(x, y - h * 0.02, w * 0.02, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    });
+  },
+
+  drawHotspots(ctx, w, h, loc) {
+    // Interactive areas pulse subtly
+    if (!loc.hotspots) return;
+    const pulse = 0.3 + Math.sin(this.animFrame * 0.05) * 0.15;
+
+    loc.hotspots.forEach((spot, idx) => {
+      const x = w * (0.15 + idx * 0.12);
+      const y = h * 0.55;
+
+      ctx.strokeStyle = `rgba(122, 255, 178, ${pulse * 0.3})`;
+      ctx.lineWidth = 1;
+      ctx.setLineDash([2, 4]);
+      ctx.strokeRect(x, y, w * 0.08, h * 0.06);
+      ctx.setLineDash([]);
+    });
+  },
+
+  drawAtmosphere(ctx, w, h, loc) {
+    // Floating particles
+    if (Math.random() < 0.05) {
+      this.particles.push({
+        x: Math.random() * w,
+        y: Math.random() * h,
+        vx: (Math.random() - 0.5) * 0.3,
+        vy: -Math.random() * 0.5,
+        life: 100,
+        size: Math.random() * 2 + 1
+      });
+    }
+
+    this.particles = this.particles.filter(p => {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.life--;
+      ctx.fillStyle = `rgba(122, 255, 178, ${p.life / 200})`;
+      ctx.fillRect(p.x, p.y, p.size, p.size);
+      return p.life > 0;
+    });
+
+    // Night overlay
+    if (State.isNight()) {
+      ctx.fillStyle = 'rgba(0, 0, 10, 0.3)';
+      ctx.fillRect(0, 0, w, h);
+    }
+
+    // Reality distortion effect
+    if (State.reality_distortion > 30) {
+      if (Math.random() < 0.02) {
+        this.glitchTimer = 5;
+      }
+      if (this.glitchTimer > 0) {
+        this.glitchTimer--;
+        const glitchY = Math.random() * h;
+        const glitchH = Math.random() * 20 + 5;
+        ctx.drawImage(this.canvas, 0, glitchY, w, glitchH, Math.random() * 6 - 3, glitchY, w, glitchH);
+      }
+    }
+  },
+
+  drawOverlayEffects(ctx, w, h) {
+    // Vignette
+    const vignette = ctx.createRadialGradient(w / 2, h / 2, w * 0.3, w / 2, h / 2, w * 0.7);
+    vignette.addColorStop(0, 'rgba(0,0,0,0)');
+    vignette.addColorStop(1, 'rgba(0,0,0,0.5)');
+    ctx.fillStyle = vignette;
+    ctx.fillRect(0, 0, w, h);
+
+    // Breathing light effect (synced with character breathing)
+    const breathCycle = Math.sin(this.animFrame * 0.02) * 0.5 + 0.5;
+    ctx.fillStyle = `rgba(122, 255, 178, ${breathCycle * 0.02})`;
+    ctx.fillRect(0, 0, w, h);
+  },
+
+  drawCameraAnomalies(ctx, w, h, location) {
+    // Additional anomalies visible only through camera
+    const distort = State.reality_distortion / 100;
+
+    // Floating symbols
+    if (distort > 0.1) {
+      ctx.fillStyle = `rgba(184, 160, 64, ${0.05 + distort * 0.1})`;
+      ctx.font = '12px Courier New';
+      for (let i = 0; i < 3; i++) {
+        const sx = w * (0.2 + Math.sin(this.animFrame * 0.01 + i * 2) * 0.3);
+        const sy = h * (0.2 + Math.cos(this.animFrame * 0.008 + i * 3) * 0.2);
+        ctx.fillText(['◊', '△', '○'][i], sx, sy);
+      }
+    }
+
+    // Shadow figures at edges
+    if (State.day >= 2) {
+      ctx.fillStyle = 'rgba(10, 10, 20, 0.15)';
+      ctx.fillRect(0, h * 0.2, w * 0.03, h * 0.4);
+      ctx.fillRect(w * 0.97, h * 0.3, w * 0.03, h * 0.35);
+    }
+  },
+
+  drawPhotoAnomalies(ctx, w, h, photo) {
+    photo.anomalies.forEach((anomaly, idx) => {
+      switch (anomaly) {
+        case 'extra_object':
+          ctx.fillStyle = '#b8a04030';
+          ctx.fillRect(w * 0.6, h * 0.5, w * 0.08, h * 0.06);
+          break;
+        case 'shadow_person':
+          ctx.fillStyle = '#0a0a1580';
+          ctx.fillRect(w * 0.8, h * 0.2, w * 0.06, h * 0.35);
+          ctx.fillRect(w * 0.81, h * 0.1, w * 0.03, h * 0.12);
+          break;
+        case 'child_on_bed':
+          ctx.fillStyle = 'rgba(100, 150, 200, 0.2)';
+          ctx.fillRect(w * 0.15, h * 0.43, w * 0.04, h * 0.08);
+          break;
+        case 'child_closer':
+          ctx.fillStyle = 'rgba(100, 150, 200, 0.25)';
+          const cx = w * (0.4 - State.child_closeness * 0.03);
+          ctx.fillRect(cx, h * 0.35, w * 0.04, h * 0.15);
+          ctx.beginPath();
+          ctx.arc(cx + w * 0.02, h * 0.33, w * 0.015, 0, Math.PI * 2);
+          ctx.fill();
+          break;
+        case 'extra_door':
+          ctx.fillStyle = '#2a1a3a60';
+          ctx.fillRect(w * 0.75, h * 0.25, w * 0.06, h * 0.35);
+          break;
+        case 'extra_beds':
+          ctx.fillStyle = '#1a2525';
+          ctx.fillRect(w * 0.7, h * 0.4, w * 0.15, h * 0.06);
+          break;
+        case 'patients_in_photo':
+          ctx.fillStyle = '#2a3a3a80';
+          ctx.fillRect(w * 0.15, h * 0.33, w * 0.04, h * 0.15);
+          ctx.fillRect(w * 0.5, h * 0.3, w * 0.04, h * 0.18);
+          break;
+        case 'figure_behind_people':
+          ctx.fillStyle = '#0a0a0a60';
+          ctx.fillRect(w * 0.45, h * 0.28, w * 0.05, h * 0.28);
+          break;
+        case 'no_reflection':
+          ctx.fillStyle = '#0a0a15';
+          ctx.fillRect(w * 0.35, h * 0.15, w * 0.08, h * 0.2);
+          break;
+        case 'wrong_architecture':
+          ctx.strokeStyle = '#b8a04020';
+          ctx.lineWidth = 1;
+          ctx.setLineDash([3, 5]);
+          ctx.strokeRect(w * 0.1, h * 0.1, w * 0.8, h * 0.05);
+          ctx.setLineDash([]);
+          break;
+        case 'elias_shadow':
+          ctx.fillStyle = '#0a0a1a40';
+          ctx.fillRect(w * 0.32, h * 0.5, w * 0.08, h * 0.03);
+          break;
+        case 'symbols_on_wall':
+          ctx.fillStyle = '#b8a04015';
+          ctx.font = '16px Courier New';
+          ctx.fillText('⊕ ⊗ ⊘ ⊙', w * 0.2, h * 0.18);
+          break;
+        case 'new_figure':
+          ctx.fillStyle = '#1a1a2a60';
+          ctx.fillRect(w * 0.55, h * 0.3, w * 0.05, h * 0.3);
+          break;
+        case 'removed_subject':
+          ctx.fillStyle = '#0a0a0a40';
+          ctx.fillRect(w * 0.3, h * 0.35, w * 0.06, h * 0.25);
+          ctx.strokeStyle = '#b8a04040';
+          ctx.setLineDash([2, 2]);
+          ctx.strokeRect(w * 0.28, h * 0.33, w * 0.1, h * 0.29);
+          ctx.setLineDash([]);
+          break;
+        case 'color_shift':
+          const shiftGrad = ctx.createRadialGradient(w * 0.5, h * 0.5, 0, w * 0.5, h * 0.5, w * 0.3);
+          shiftGrad.addColorStop(0, 'rgba(139, 0, 0, 0.08)');
+          shiftGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+          ctx.fillStyle = shiftGrad;
+          ctx.fillRect(0, 0, w, h);
+          break;
+        case 'text_appears':
+          ctx.fillStyle = '#b8a04040';
+          ctx.font = '10px Courier New';
+          ctx.fillText('IT REMEMBERS', w * 0.3, h * 0.8);
+          break;
+        case 'object_moved':
+          ctx.strokeStyle = '#b8a04030';
+          ctx.setLineDash([3, 3]);
+          ctx.beginPath();
+          ctx.moveTo(w * 0.3, h * 0.5);
+          ctx.lineTo(w * 0.6, h * 0.5);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          break;
+      }
+    });
+
+    // Red color rendering
+    if (photo.hasRed) {
+      // This is "the color that should not exist" - render as a disturbing, hard-to-describe hue
+      const redGrad = ctx.createRadialGradient(w * 0.4, h * 0.4, 0, w * 0.4, h * 0.4, w * 0.15);
+      redGrad.addColorStop(0, 'rgba(139, 20, 20, 0.15)');
+      redGrad.addColorStop(0.5, 'rgba(180, 40, 60, 0.08)');
+      redGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = redGrad;
+      ctx.fillRect(0, 0, w, h);
+
+      // Surrounding color shift
+      ctx.fillStyle = 'rgba(100, 80, 120, 0.03)';
+      ctx.fillRect(0, 0, w, h);
+    }
+  }
+};
+
+// ==================== NARRATIVE ENGINE ====================
+const Narrative = {
+  currentDialogueId: null,
+  currentLineIndex: 0,
+  typingTimer: null,
+  pendingChoices: null,
+
+  startDialogue(characterId, dialogueId) {
+    const char = Characters[characterId];
+    if (!char || !char.dialogues[dialogueId]) return;
+
+    this.currentDialogueId = `${characterId}:${dialogueId}`;
+    this.currentLineIndex = 0;
+    this.showLine(char.dialogues[dialogueId]);
+
+    if (!State.npcsMet.includes(characterId)) {
+      State.npcsMet.push(characterId);
+    }
+  },
+
+  showLine(lines) {
+    if (this.currentLineIndex >= lines.length) {
+      this.closeDialogue();
+      return;
+    }
+
+    const line = lines[this.currentLineIndex];
+    const nameEl = document.getElementById('speaker-name');
+    const textEl = document.getElementById('dialogue-text');
+    const choicesEl = document.getElementById('dialogue-choices');
+
+    nameEl.textContent = line.speaker || '';
+    textEl.textContent = '';
+    choicesEl.innerHTML = '';
+
+    document.getElementById('dialogue-box').classList.add('active');
+
+    if (line.choices) {
+      // Show choices after a brief delay
+      setTimeout(() => {
+        this.typingTimer = null;
+        line.choices.forEach((choice, idx) => {
+          const btn = document.createElement('button');
+          btn.className = 'choice-btn';
+          btn.textContent = choice.text;
+          btn.onclick = () => this.makeChoice(choice);
+          choicesEl.appendChild(btn);
+        });
+      }, 500);
+      this.currentLineIndex++;
+    } else {
+      // Type out the text
+      this.typeText(line.text, line.delay || 0, lines);
+    }
+  },
+
+  typeText(text, delay, lines) {
+    const textEl = document.getElementById('dialogue-text');
+    let i = 0;
+    let done = false;
+
+    const startTyping = () => {
+      this.typingTimer = setInterval(() => {
+        if (i < text.length) {
+          textEl.textContent += text[i];
+          i++;
+        } else if (!done) {
+          done = true;
+          clearInterval(this.typingTimer);
+          this.typingTimer = null;
+          // Add a tap-to-continue indicator
+          const choicesEl = document.getElementById('dialogue-choices');
+          const continueBtn = document.createElement('button');
+          continueBtn.className = 'choice-btn';
+          continueBtn.textContent = '...';
+          continueBtn.onclick = () => {
+            choicesEl.innerHTML = '';
+            this.currentLineIndex++;
+            this.showLine(lines);
+          };
+          choicesEl.appendChild(continueBtn);
+        }
+      }, 25);
+    };
+
+    if (delay > 0) {
+      setTimeout(startTyping, delay);
+    } else {
+      startTyping();
+    }
+  },
+
+  makeChoice(choice) {
+    if (choice.next) {
+      // Find the dialogue continuation
+      const [charId, dlgId] = this.currentDialogueId.split(':');
+      const char = Characters[charId];
+      if (char && char.dialogues[choice.next]) {
+        this.currentDialogueId = `${charId}:${choice.next}`;
+        this.currentLineIndex = 0;
+        this.showLine(char.dialogues[choice.next]);
+      } else {
+        // Try to find it as a sub-dialogue
+        const parts = choice.next.split('_');
+        if (parts[0] === 'elias' && char.dialogues[choice.next]) {
+          this.currentLineIndex = 0;
+          this.showLine(char.dialogues[choice.next]);
+        }
+      }
+    }
+
+    // Apply choice effects
+    if (choice.effect) {
+      Object.keys(choice.effect).forEach(k => {
+        if (k in State) State[k] += choice.effect[k];
+      });
+    }
+
+    // Track choice types for ending determination
+    if (choice.text && choice.text.toLowerCase().includes('delete')) {
+      State.deletedEvidence++;
+    }
+    if (choice.text && (choice.text.toLowerCase().includes('lie') || choice.text.toLowerCase().includes('keep it but say'))) {
+      State.liedCount++;
+    }
+    if (choice.text && choice.text.toLowerCase().includes('say nothing')) {
+      State.silentCount++;
+    }
+
+    // Play sound
+    Audio_.playTone(400, 0.1, 'sine', 0.1);
+  },
+
+  closeDialogue() {
+    document.getElementById('dialogue-box').classList.remove('active');
+    document.getElementById('speaker-name').textContent = '';
+    document.getElementById('dialogue-text').textContent = '';
+    document.getElementById('dialogue-choices').innerHTML = '';
+    this.currentDialogueId = null;
+    this.currentLineIndex = 0;
+    if (this.typingTimer) {
+      clearInterval(this.typingTimer);
+      this.typingTimer = null;
+    }
+  }
+};
+
+// ==================== EVENT SYSTEM ====================
+const Events = {
+  dayEvents: {
+    1: [
+      { id: 'wake_up', time: '07:00', trigger: 'auto', action: 'wakeUp' },
+      { id: 'find_note', time: '07:30', trigger: 'auto', action: 'findNote' },
+      { id: 'elias_knock', time: '20:00', trigger: 'night', action: 'eliasKnock' }
+    ],
+    2: [
+      { id: 'photo_change', time: '07:00', trigger: 'auto', action: 'photoChange' },
+      { id: 'mira_encounter', time: '12:00', trigger: 'location', location: 'square', action: 'miraEncounter' },
+      { id: 'child_first', time: 'any', trigger: 'location', location: 'street', action: 'childFirstSighting' }
+    ],
+    3: [
+      { id: 'hallway_change', time: '08:00', trigger: 'auto', action: 'hallwayChanged' },
+      { id: 'dealer_found', time: 'any', trigger: 'location', location: 'photo_shop', action: 'dealerEncounter' },
+      { id: 'night_sounds', time: '22:00', trigger: 'night', action: 'nightSounds' }
+    ],
+    4: [
+      { id: 'hospital_access', time: 'any', trigger: 'location', location: 'hospital', action: 'hospitalEvent' },
+      { id: 'red_first', time: 'any', trigger: 'photo', action: 'firstRedPhoto' },
+      { id: 'mira_child_link', time: 'any', trigger: 'flag', flag: 'mira_met', location: 'square', action: 'miraChildLink' }
+    ],
+    5: [
+      { id: 'people_missing', time: '07:00', trigger: 'auto', action: 'peopleMissing' },
+      { id: 'subway_access', time: 'any', trigger: 'location', location: 'subway', action: 'subwayEvent' },
+      { id: 'hotel_anomaly', time: 'any', trigger: 'location', location: 'hotel', action: 'hotelEvent' }
+    ],
+    6: [
+      { id: 'sealed_district', time: 'any', trigger: 'location', location: 'sealed_district', action: 'sealedEvent' },
+      { id: 'archive_found', time: 'any', trigger: 'flag', flag: 'subway_explored', location: 'archive_room', action: 'archiveEvent' },
+      { id: 'child_near', time: '21:00', trigger: 'night', action: 'childNear' },
+      { id: 'greenhouse_event', time: 'any', trigger: 'location', location: 'greenhouse', action: 'greenhouseEvent' },
+      { id: 'school_event', time: 'any', trigger: 'location', location: 'school', action: 'schoolEvent' }
+    ],
+    7: [
+      { id: 'final_day', time: '06:00', trigger: 'auto', action: 'finalDay' },
+      { id: 'truth_revealed', time: 'any', trigger: 'flag', flag: 'archive_explored', location: 'secret_room', action: 'finalTruth' },
+      { id: 'child_in_room', time: '22:00', trigger: 'night', action: 'childInRoom' },
+      { id: 'elias_final', time: 'any', trigger: 'location', location: 'hallway', action: 'eliasFinal' }
+    ]
+  },
+
+  checkEvents() {
+    const dayEvents = this.dayEvents[State.day] || [];
+    dayEvents.forEach(evt => {
+      if (State.eventsTriggered.includes(evt.id)) return;
+
+      let shouldTrigger = false;
+      if (evt.trigger === 'auto') {
+        // Auto events trigger when time matches or on first arrival
+        if (evt.time === 'any' || evt.time === State.getTimeString()) shouldTrigger = true;
+        if (evt.time === State.getTimeString()) shouldTrigger = true;
+      }
+      if (evt.trigger === 'night' && State.isNight()) {
+        if (evt.time === 'any' || evt.time === State.getTimeString()) shouldTrigger = true;
+      }
+      if (evt.trigger === 'location' && State.location === evt.location) shouldTrigger = true;
+      if (evt.trigger === 'flag' && State.hasFlag(evt.flag)) {
+        if (!evt.location || State.location === evt.location) shouldTrigger = true;
+      }
+      if (evt.trigger === 'photo' && State.totalPhotosTaken > 0) shouldTrigger = true;
+
+      if (shouldTrigger) {
+        State.eventsTriggered.push(evt.id);
+        this.executeEvent(evt);
+      }
+    });
+  },
+
+  executeEvent(evt) {
+    switch (evt.action) {
+      case 'wakeUp':
+        Game.addNote('Day ' + State.day + ': You wake up in Apartment 407. The light outside is the same pale green.');
+        Game.showLocationName();
+        break;
+      case 'findNote':
+        Game.startDialogueWithText('', 'You find a note on the table. The handwriting is yours:\n\n"Don\'t photograph the people who have seen you."\n\nOn the back:\n"And if a photo contains red, destroy it immediately."');
+        Game.addNote('Found note in own handwriting. Warning about photographing people and the color red.');
+        break;
+      case 'eliasKnock':
+        Audio_.playKnock();
+        Game.notify('*knock knock knock*');
+        setTimeout(() => {
+          Game.transition('hallway');
+          setTimeout(() => {
+            Game.startDialogue('elias', 'first_meeting');
+          }, 1000);
+        }, 2000);
+        break;
+      case 'photoChange':
+        if (State.photos.length > 0) {
+          const photo = State.photos[Math.floor(Math.random() * State.photos.length)];
+          photo.altered = true;
+          photo.anomalies.push('altered_after_sleep');
+          State.photoChanges.push({ photoId: photo.id, alteration: 'sleep_change', day: State.day });
+          Game.notify('Something in your photos has changed...');
+        }
+        break;
+      case 'miraEncounter':
+        if (!State.hasFlag('mira_met')) {
+          State.addFlag('mira_met');
+          Game.startDialogue('mira', 'first_meeting');
+        }
+        break;
+      case 'childFirstSighting':
+        if (State.child_closeness === 0) {
+          State.child_closeness = 1;
+          Game.startDialogue('child_distant', 'first_sighting');
+        }
+        break;
+      case 'hallwayChanged':
+        State.hallwayDoors = 5;
+        Game.addNote('⚠ The hallway now has an extra door. You\'re certain it wasn\'t there yesterday.');
+        Game.notify('The hallway feels... longer.');
+        Audio_.playUnsettling();
+        break;
+      case 'dealerEncounter':
+        if (!State.hasFlag('dealer_met')) {
+          State.addFlag('dealer_met');
+          Game.startDialogue('photo_dealer', 'first_meeting');
+        }
+        break;
+      case 'nightSounds':
+        Audio_.playWhisper();
+        Game.notify('Whispers from the walls...');
+        Game.addNote('Heard whispers at night. No source identified.');
+        break;
+      case 'hospitalEvent':
+        if (!State.hasFlag('hospital_explored')) {
+          State.addFlag('hospital_explored');
+          Game.startDialogue('nurse_shadow', 'encounter');
+          Game.addNote('The old hospital. Beds that look recently used. A shadow nurse who has no shadow.');
+        }
+        break;
+      case 'firstRedPhoto':
+        if (!State.hasFlag('red_seen')) {
+          State.addFlag('red_seen');
+          State.addFlag('red_unlocked');
+          Game.addNote('⚠ RED. You photographed something that shouldn\'t exist. The color is... you can\'t name it. But you know it\'s wrong.');
+          Game.notify('The color appears.');
+          Audio_.playUnsettling();
+          State.reality_distortion += 15;
+        }
+        break;
+      case 'miraChildLink':
+        Game.addNote('Mira claims the child you\'ve been seeing is her daughter. No one else remembers the child.');
+        break;
+      case 'peopleMissing':
+        State.peopleDisappeared += 1;
+        Game.addNote('⚠ Someone is missing from the streets. No one seems to notice except you.');
+        Game.notify('The streets feel emptier today.');
+        break;
+      case 'subwayEvent':
+        if (!State.hasFlag('subway_explored')) {
+          State.addFlag('subway_explored');
+          Game.startDialogue('shadow_man', 'encounter');
+        }
+        break;
+      case 'hotelEvent':
+        if (!State.hasFlag('hotel_explored')) {
+          State.addFlag('hotel_explored');
+          Game.startDialogue('receptionist', 'encounter');
+        }
+        break;
+      case 'sealedEvent':
+        if (!State.hasFlag('sealed_explored')) {
+          State.addFlag('sealed_explored');
+          Game.startDialogue('blocked_figure', 'encounter');
+        }
+        break;
+      case 'archiveEvent':
+        if (!State.hasFlag('archive_explored')) {
+          State.addFlag('archive_explored');
+          Game.addNote('⚠ Photo Archive found. Filing cabinets contain records of every photograph taken in Vesper. Including ones that haven\'t been taken yet.');
+          State.flags['secret_room_available'] = true;
+          Game.notify('The Archive reveals a hidden path...');
+        }
+        break;
+      case 'childNear':
+        State.child_closeness = Math.min(7, State.child_closeness + 1);
+        if (State.child_closeness >= 5) {
+          Game.addNote('⚠ The child was in the hallway last night. Standing outside apartment 407.');
+        }
+        break;
+      case 'finalDay':
+        Game.addNote('Day 7. You feel like the city is watching you. All the evidence points to something.');
+        Game.notify('This is the last day.');
+        Audio_.playDrone(40);
+        break;
+      case 'finalTruth':
+        Game.transition('secret_room');
+        setTimeout(() => {
+          Game.startDialogue('the_original', 'encounter');
+          setTimeout(() => {
+            Game.checkEnding();
+          }, 10000);
+        }, 2000);
+        break;
+      case 'greenhouseEvent':
+        if (!State.hasFlag('greenhouse_explored')) {
+          State.addFlag('greenhouse_explored');
+          Game.startDialogue('gardener', 'encounter');
+          Game.addNote('The greenhouse plants are not green. They are magenta, pale yellow, translucent blue. "These are the real colors of Vesper."');
+        }
+        break;
+      case 'schoolEvent':
+        if (!State.hasFlag('school_explored')) {
+          State.addFlag('school_explored');
+          Game.startDialogue('teacher_voice', 'encounter');
+          Game.addNote('The school chalkboard writes by itself. "IT REMEMBERS WHAT YOU FORGET." A voice from nowhere teaches lessons about erased residents.');
+        }
+        break;
+      case 'childInRoom':
+        if (State.child_closeness >= 5) {
+          State.child_closeness = Math.min(7, State.child_closeness + 1);
+          State.addFlag('child_in_room');
+          Game.addNote('⚠ You woke up and the child was sitting on the edge of the bed. It didn\'t move when you sat up. It just watched. Then it was gone.');
+          Game.notify('The child was in your room.');
+          Audio_.playWhisper();
+          State.memory_stability -= 15;
+        }
+        break;
+      case 'eliasFinal':
+        if (State.hasFlag('elias_met') || State.npcsMet.includes('elias')) {
+          let dialogueKey = 'suspicious';
+          if (State.trust.elias > 60) dialogueKey = 'elias_city'; // reuse as friendly
+          Game.startDialogue('elias', dialogueKey);
+          if (State.reality_distortion > 50) {
+            Game.addNote('⚠ Elias says: "You still haven\'t remembered, have you?" What does he mean?');
+            State.flags['elias_final_hint'] = true;
+          }
+        }
+        break;
+    }
+  },
+
+  checkEndingConditions() {
+    const state = State;
+
+    // Ending 1: The Perfect Photograph
+    if (state.totalPhotosTaken >= 15 && state.photosWithRed === 0 && state.photo_integrity > 80) {
+      return 'ending_perfect_photo';
+    }
+
+    // Ending 2: Everyone Remembers You
+    if (state.npcsMet.length >= 8 && state.truth_exposure > 60 && state.memory_stability < 40) {
+      return 'ending_everyone_remembers';
+    }
+
+    // Ending 3: The Last Red Image
+    if (state.photosWithRed >= 3 && state.hasFlag('red_analyzed') && state.reality_distortion > 50) {
+      return 'ending_last_red';
+    }
+
+    // Ending 4: Nothing Was Wrong
+    if (state.eventsTriggered.length <= 5 && state.totalPhotosTaken <= 3 && state.silentCount >= 3) {
+      return 'ending_nothing_wrong';
+    }
+
+    // Ending 5: The Witness
+    if (state.evidence_collected >= 10 && state.truth_exposure > 70) {
+      return 'ending_witness';
+    }
+
+    // Ending 6: The Eraser
+    if (state.deletedEvidence >= 5 && state.photosWithRed === 0 && state.reality_distortion < 20) {
+      return 'ending_eraser';
+    }
+
+    // Ending 7: The Believer
+    if (state.trust.elias > 70 && state.trust.mira > 60 && state.suspicion_city < 30) {
+      return 'ending_believer';
+    }
+
+    // Ending 8: The Impostor
+    if (state.liedCount >= 4 && state.hasFlag('dealer_met') && state.hasFlag('subway_explored')) {
+      return 'ending_impostor';
+    }
+
+    // Ending 9: The Colorless
+    if (state.hasFlag('red_unlocked') && state.reality_distortion > 70 && state.child_closeness >= 6) {
+      return 'ending_colorless';
+    }
+
+    // Ending 10: The Loop
+    if (state.daysSlept >= 6 && state.hasFlag('archive_explored')) {
+      return 'ending_loop';
+    }
+
+    // Default ending
+    return 'ending_default';
+  }
+};
+
+// ==================== ENDINGS ====================
+const Endings = {
+  ending_perfect_photo: {
+    title: 'ENDING 01 — THE PERFECT PHOTOGRAPH',
+    text: `You took the perfect photograph of Vesper.\n\nNo anomalies. No shadows. No strange colors.\nEveryone is smiling.\n\nThere is just one problem.\n\nYou no longer appear in any mirror.\n\nThe city has accepted you. You are part of Vesper now.\nA permanent resident. A fixed point.\n\nBut something that was once you is gone.\n\nYou are the photograph.\nAnd the photograph is perfect.`
+  },
+  ending_everyone_remembers: {
+    title: 'ENDING 02 — EVERYONE REMEMBERS YOU',
+    text: `All the residents remember you now.\n\nThey know your name. Your age. Your secrets.\nThey tell you memories you never lived.\n\n"You used to sit in the square every morning," Mira says.\n"Before you forgot," Elias adds.\n\nYou've become part of the city's memory.\nYour real memories dissolve.\n\nYou were never a visitor.\nYou were always here.\nYou just didn't know it yet.`
+  },
+  ending_last_red: {
+    title: 'ENDING 03 — THE LAST RED IMAGE',
+    text: `You found the source of the color red.\n\nThe final photograph doesn't show the city.\nIt shows a room. Your room. The real one.\n\nOn the table: the camera.\nBehind the camera: a person looking directly into the lens.\n\nIt's you.\n\nYou were never in Vesper.\nVesper was in the photograph.\n\nAnd the photograph is developing.\nSlowly.\n\nForever.`
+  },
+  ending_nothing_wrong: {
+    title: 'ENDING 04 — NOTHING WAS WRONG',
+    text: `You decided not to investigate.\n\nNo one disappeared. No monsters. No color.\nLife returned to normal.\n\nYears later, you find an old photograph in a drawer.\n\nIn it, every resident stands in front of apartment 407.\nAll facing away from the camera.\n\nExcept one.\n\nThat person is looking directly at you.\n\nAnd smiling.`
+  },
+  ending_witness: {
+    title: 'ENDING 05 — THE WITNESS',
+    text: `You documented everything.\n\nEvery anomaly. Every impossible thing. Every lie.\n\nThe evidence is irrefutable.\nVesper is a construct. A photograph pretending to be a city.\n\nBut the city knows you know.\n\nThe photographs are watching you now.\nEach one a window.\nEach window an eye.\n\nYou are the Witness.\nAnd the Witness cannot be allowed to leave.`
+  },
+  ending_eraser: {
+    title: 'ENDING 06 — THE ERASER',
+    text: `You destroyed every piece of evidence.\n\nBurned the photographs. Deleted the records.\nPretended nothing was wrong.\n\nThe city approves.\n\nVesper becomes peaceful. Normal.\nThe green light softens.\nPeople smile genuinely.\n\nBut sometimes, late at night, you hear knocking.\nNot at the door.\n\nAt the edge of your memory.\n\nSomething you destroyed is trying to come back.`
+  },
+  ending_believer: {
+    title: 'ENDING 07 — THE BELIEVER',
+    text: `You trusted them.\n\nElias protected you. Mira guided you.\nThe city accepted you as one of its own.\n\nYou never needed the camera.\nYou never needed the truth.\n\nSometimes, in photographs, you see things that aren't there.\nBut you've learned not to look.\n\nBelief is comfortable.\nAnd Vesper is kind to those who don't question.`
+  },
+  ending_impostor: {
+    title: 'ENDING 08 — THE IMPOSTOR',
+    text: `You pretended to know nothing.\n\nYou lied. You smiled. You played along.\nAnd behind the mask, you gathered information.\n\nThe Photo Dealer showed you the truth:\nYou've played this game before.\nMany times.\n\nEach time, you chose a different mask.\nEach time, you got a little further.\n\nThis time, you might actually escape.\n\nOr you might be lying to yourself too.`
+  },
+  ending_colorless: {
+    title: 'ENDING 09 — THE COLORLESS',
+    text: `You found the color red.\nYou broke the rules of Vesper.\n\nThe child led you to the edge of the city.\nBeyond the barrier. Beyond the photographs.\n\nThere is nothing there.\n\nNo color. No light. No sound.\nJust the absence of everything Vesper was built to hide.\n\nYou understand now.\nVesper wasn't a prison.\nIt was a mask.\n\nAnd you've taken it off.\n\nWhat's left is something that should not exist.\nNeither red nor any other color.\nJust... the space between.`
+  },
+  ending_loop: {
+    title: 'ENDING 10 — THE LOOP',
+    text: `The Archive contained the truth.\n\nYou've been here before.\nMany times.\nEach cycle, you forget.\nEach cycle, you find the camera.\nEach cycle, you ask the same questions.\n\nThe Old Woman was right.\nYou always arrive on a Tuesday.\n\nBut this time is different.\nThis time, you remember.\n\nThe question is:\nWill you remember next time?\n\nOr is remembering just another part of the loop?`
+  },
+  ending_default: {
+    title: 'THE COLOR THAT SHOULD NOT EXIST',
+    text: `You lived in Vesper.\nYou photographed what you saw.\nYou spoke to those who lived there.\n\nSome truths you found. Some you missed.\nThe city kept most of its secrets.\n\nYou leave apartment 407.\nOr perhaps you never left.\n\nThe green light persists.\nThe camera waits.\n\nSomewhere, a child is watching.\nSomewhere, a color that shouldn't exist is waiting to be seen.\n\nThe photograph is not yet complete.`
+  }
+};
+
+// ==================== MAIN GAME ====================
+const Game = {
+  init() {
+    Renderer.init();
+    this.updateHUD();
+
+    // Touch/click handling for scene interaction
+    const canvas = document.getElementById('main-canvas');
+    canvas.addEventListener('click', (e) => this.handleSceneClick(e));
+    canvas.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      const touch = e.touches[0];
+      this.handleSceneClick(touch);
+    });
+
+    // Resume audio on interaction
+    document.addEventListener('click', () => Audio_.resume(), { once: true });
+    document.addEventListener('touchstart', () => Audio_.resume(), { once: true });
+  },
+
+  newGame() {
+    State.reset();
+    Audio_.init();
+    Audio_.playDrone();
+
+    document.getElementById('title-screen').classList.remove('active');
+    document.getElementById('hud').classList.add('active');
+
+    this.transition('apartment_407');
+    this.addNote('You wake up in Apartment 407. You don\'t remember how you got here.');
+    this.addNote('The light outside is pale green. The sun casts no shadows.');
+    this.addNote('On the table: an old camera. A folded note. Your handwriting.');
+    this.updateHUD();
+    this.updateNavigation();
+
+    // Start day 1 wake-up event
+    setTimeout(() => {
+      Events.executeEvent({ action: 'findNote' });
+    }, 4000);
+
+    // Trigger elias knock at night (Day 1)
+    setTimeout(() => {
+      if (State.day === 1 && !State.eventsTriggered.includes('elias_knock')) {
+        // Speed up to evening for demo purposes
+        State.hour = 20;
+        State.minute = 0;
+        this.updateHUD();
+        Events.executeEvent({ action: 'eliasKnock' });
+      }
+    }, 30000);
+
+    // Periodic time advancement and event checking
+    setInterval(() => {
+      if (!Camera.isOpen) {
+        State.advanceTime(5);
+        Events.checkEvents();
+        this.updateHUD();
+      }
+    }, 15000);
+  },
+
+  loadGame() {
+    const saves = this.getSaves();
+    if (saves[0]) {
+      State.deserialize(saves[0].data);
+      document.getElementById('title-screen').classList.remove('active');
+      document.getElementById('hud').classList.add('active');
+      Audio_.init();
+      Audio_.playDrone();
+      this.transition(State.location);
+      this.updateHUD();
+      this.notify('Game loaded');
+    } else {
+      this.notify('No save data found');
+    }
+  },
+
+  showSaveSlots() {
+    const screen = document.getElementById('save-screen');
+    const slotsEl = document.getElementById('save-slots');
+    slotsEl.innerHTML = '';
+
+    const saves = this.getSaves();
+    for (let i = 0; i < 3; i++) {
+      const slot = document.createElement('div');
+      slot.className = 'save-slot' + (saves[i] ? '' : ' empty');
+
+      if (saves[i]) {
+        const data = JSON.parse(saves[i].data);
+        slot.innerHTML = `<h3>Slot ${i + 1}</h3><p>Day ${data.day} — ${String(data.hour).padStart(2,'0')}:${String(data.minute).padStart(2,'0')}</p><p>Location: ${Locations[data.location]?.name || data.location}</p><p>Photos: ${data.photos?.length || 0} | Events: ${data.eventsTriggered?.length || 0}</p>`;
+        slot.onclick = () => {
+          State.deserialize(saves[i].data);
+          screen.classList.remove('active');
+          document.getElementById('title-screen').classList.remove('active');
+          document.getElementById('hud').classList.add('active');
+          Audio_.init();
+          Audio_.playDrone();
+          this.transition(State.location);
+          this.updateHUD();
+          this.notify('Game loaded from Slot ' + (i + 1));
+        };
+      } else {
+        slot.innerHTML = `<h3>Slot ${i + 1}</h3><p>— Empty —</p>`;
+        slot.onclick = () => {
+          this.notify('No save in this slot');
+        };
+      }
+      slotsEl.appendChild(slot);
+    }
+    screen.classList.add('active');
+  },
+
+  openSaveMenu() {
+    const screen = document.getElementById('save-screen');
+    const slotsEl = document.getElementById('save-slots');
+    slotsEl.innerHTML = '';
+
+    const saves = this.getSaves();
+    for (let i = 0; i < 3; i++) {
+      const slot = document.createElement('div');
+      slot.className = 'save-slot' + (saves[i] ? '' : ' empty');
+
+      if (saves[i]) {
+        const data = JSON.parse(saves[i].data);
+        slot.innerHTML = `<h3>Slot ${i + 1}</h3><p>Day ${data.day} — ${String(data.hour).padStart(2,'0')}:${String(data.minute).padStart(2,'0')}</p><p>Location: ${Locations[data.location]?.name || data.location}</p><p>Photos: ${data.photos?.length || 0}</p>`;
+      } else {
+        slot.innerHTML = `<h3>Slot ${i + 1}</h3><p>— Empty —</p>`;
+      }
+
+      // Save button
+      const saveBtn = document.createElement('button');
+      saveBtn.className = 'choice-btn';
+      saveBtn.style.marginTop = '8px';
+      saveBtn.textContent = 'SAVE HERE';
+      saveBtn.onclick = (e) => {
+        e.stopPropagation();
+        this.saveGame(i);
+      };
+      slot.appendChild(saveBtn);
+
+      // Load button (if save exists)
+      if (saves[i]) {
+        const loadBtn = document.createElement('button');
+        loadBtn.className = 'choice-btn';
+        loadBtn.style.marginTop = '4px';
+        loadBtn.textContent = 'LOAD';
+        loadBtn.onclick = (e) => {
+          e.stopPropagation();
+          State.deserialize(saves[i].data);
+          screen.classList.remove('active');
+          document.getElementById('hud').classList.add('active');
+          this.transition(State.location);
+          this.updateHUD();
+          this.notify('Loaded Slot ' + (i + 1));
+        };
+        slot.appendChild(loadBtn);
+      }
+
+      slotsEl.appendChild(slot);
+    }
+    screen.classList.add('active');
+  },
+
+  closeSaveMenu() {
+    document.getElementById('save-screen').classList.remove('active');
+  },
+
+  saveGame(slot) {
+    const saves = this.getSaves();
+    saves[slot] = { data: State.serialize(), timestamp: Date.now() };
+    localStorage.setItem('vesper_saves', JSON.stringify(saves));
+    this.notify('Saved to Slot ' + (slot + 1));
+    Audio_.playTone(600, 0.2, 'sine', 0.1);
+  },
+
+  getSaves() {
+    try {
+      return JSON.parse(localStorage.getItem('vesper_saves') || '[]');
+    } catch (e) {
+      return [];
+    }
+  },
+
+  transition(location) {
+    const overlay = document.getElementById('transition-overlay');
+    overlay.classList.add('active');
+
+    setTimeout(() => {
+      State.location = location;
+      Renderer.particles = [];
+      this.updateHUD();
+      this.updateNavigation();
+      this.showLocationName();
+
+      // Set ambient sound
+      const loc = Locations[location];
+      if (loc) {
+        switch (loc.ambient) {
+          case 'electric': Audio_.playDrone(55); break;
+          case 'fluorescent': Audio_.playElectricHum(); break;
+          case 'echo': Audio_.playDrone(45); break;
+          case 'city': Audio_.playDrone(60); break;
+          case 'quiet': Audio_.playDrone(50); break;
+          case 'underground': Audio_.playDrone(35); break;
+          case 'void': Audio_.playDrone(30); break;
+          case 'open': Audio_.playDrone(65); break;
+          case 'muffled': Audio_.playDrone(48); break;
+          case 'organic': Audio_.playDrone(52); break;
+          case 'wind': Audio_.playDrone(58); break;
+          case 'silence': Audio_.playDrone(25); break;
+          case 'tension': Audio_.playDrone(42); break;
+          default: Audio_.playDrone(55);
+        }
+      }
+
+      // Check for events at this location
+      Events.checkEvents();
+
+      setTimeout(() => {
+        overlay.classList.remove('active');
+      }, 800);
+    }, 800);
+  },
+
+  navigateTo(location) {
+    if (!Locations[location]) return;
+    State.advanceTime(5);
+    this.transition(location);
+    Audio_.playFootstep();
+  },
+
+  handleSceneClick(e) {
+    if (Camera.isOpen) return;
+    if (document.getElementById('dialogue-box').classList.contains('active')) return;
+
+    const rect = Renderer.canvas.getBoundingClientRect();
+    const x = (e.clientX || e.pageX) - rect.left;
+    const y = (e.clientY || e.pageY) - rect.top;
+    const w = rect.width;
+    const h = rect.height;
+
+    // Check NPC clicks
+    const loc = Locations[State.location];
+    if (!loc) return;
+
+    if (loc.npcs) {
+      for (let idx = 0; idx < loc.npcs.length; idx++) {
+        const npcId = loc.npcs[idx];
+        const char = Characters[npcId];
+        if (!char) continue;
+        const npcX = w * (0.3 + idx * 0.2);
+        const npcY = h * 0.35;
+        if (Math.abs(x - npcX) < w * 0.08 && Math.abs(y - npcY) < h * 0.2) {
+          this.interactNPC(npcId);
+          return;
+        }
+      }
+    }
+
+    // Click on center area = interact with scene
+    if (y > h * 0.2 && y < h * 0.7) {
+      // Check if there's something interesting
+      const hint = document.getElementById('interact-hint');
+      if (loc.npcs && loc.npcs.length > 0) {
+        hint.textContent = 'TAP A FIGURE TO INTERACT';
+        hint.classList.add('active');
+        setTimeout(() => hint.classList.remove('active'), 2000);
+      }
+    }
+  },
+
+  interactNPC(npcId) {
+    const char = Characters[npcId];
+    if (!char) return;
+
+    // Track NPC meeting
+    if (!State.npcsMet.includes(npcId)) {
+      State.npcsMet.push(npcId);
+    }
+    if (npcId === 'elias') State.addFlag('elias_met');
+    if (npcId === 'mira') State.addFlag('mira_met');
+
+    const firstDialogue = Object.keys(char.dialogues)[0];
+    if (firstDialogue) {
+      this.startDialogue(npcId, firstDialogue);
+    }
+
+    Audio_.playTone(300, 0.1, 'sine', 0.1);
+  },
+
+  interactHotspot(spotId) {
+    switch (spotId) {
+      case 'bed':
+        if (State.isNight()) {
+          this.sleep();
+        } else {
+          this.startDialogueWithText('', 'The bed is neatly made. You don\'t remember making it.');
+        }
+        break;
+      case 'table':
+        if (State.day === 1 && !State.hasFlag('table_checked')) {
+          State.addFlag('table_checked');
+          this.startDialogueWithText('', 'On the table: a camera. Old. Heavy. The lens is warm.\n\nBeside it, a folded note.\n\nYou unfold it. The handwriting is yours.');
+          Events.executeEvent({ action: 'findNote' });
+        } else {
+          this.startDialogueWithText('', 'The table. ' + (State.day >= 3 ? 'Something has been moved. You\'re sure of it.' : 'Nothing has changed.'));
+        }
+        break;
+      case 'window':
+        this.navigateTo('window_view');
+        break;
+      case 'mirror':
+        if (State.mirrorReflection) {
+          this.startDialogueWithText('', 'Your reflection stares back. Normal. Expected.\n\n...Is it?');
+          if (State.day >= 4 && Math.random() < 0.3) {
+            State.mirrorReflection = false;
+            this.startDialogueWithText('', 'Wait. For a moment, the reflection moved independently.\n\nYou blink. It\'s normal again.\n\n...Isn\'t it?');
+            Audio_.playUnsettling();
+          }
+        } else {
+          this.startDialogueWithText('', 'The mirror shows the room. But you\'re not in it.\n\nThe reflection is empty.\n\nYour reflection is gone.');
+          Audio_.playUnsettling();
+        }
+        break;
+      case 'camera_stand':
+        this.startDialogueWithText('', 'The camera sits on its stand. Waiting.\n\n' + State.film + ' frames of film remaining.');
+        break;
+      case 'door':
+        if (State.location === 'apartment_407') {
+          this.navigateTo('hallway');
+        }
+        break;
+      case 'chair':
+        this.startDialogueWithText('', 'A single chair facing the wall. As if someone was watching something.\n\nOr being watched.');
+        break;
+      case 'mailbox':
+        this.startDialogueWithText('', 'The mailboxes are empty. All of them.\n\nExcept one. Number 407. Yours.\n\nInside: a photograph you don\'t remember receiving.\n\nIt shows this lobby. From an angle you\'ve never stood at.');
+        State.evidence_collected++;
+        break;
+      case 'fountain':
+        this.startDialogueWithText('', 'The fountain is dry. At the bottom, scratched into the stone:\n\n"THE COLOR WAS HERE FIRST"');
+        break;
+      case 'tracks':
+        this.startDialogueWithText('', 'The tracks are dry. No dust. No rust.\n\nAs if a train passed through yesterday.\n\nBut no train has run in Vesper for years.\n\nHas it?');
+        break;
+      case 'chalkboard':
+        this.startDialogueWithText('', 'The chalkboard reads:\n\n"DAY ' + State.day + '"\n\nBut yesterday it said something different.\nYou\'re sure of it.\n\n...Aren\'t you?');
+        break;
+      default:
+        this.startDialogueWithText('', 'You examine ' + spotId.replace(/_/g, ' ') + '.\n\n' + (Math.random() < 0.3 ? 'Something feels wrong here. Subtle. Wrong.' : 'Nothing unusual. Nothing at all.'));
+    }
+    Audio_.playTone(200, 0.1, 'sine', 0.05);
+  },
+
+  sleep() {
+    State.daysSlept++;
+    State.hour = 7;
+    State.minute = 0;
+    State.day++;
+
+    this.transition('apartment_407');
+    this.addNote(`Slept. Day ${State.day} begins.`);
+
+    // Photos may change during sleep
+    if (State.photos.length > 0 && Math.random() < 0.4) {
+      const photo = State.photos[Math.floor(Math.random() * State.photos.length)];
+      if (!photo.altered) {
+        photo.altered = true;
+        const alterations = ['new_figure', 'removed_subject', 'color_shift', 'text_appears'];
+        photo.anomalies.push(alterations[Math.floor(Math.random() * alterations.length)]);
+        State.photoChanges.push({ photoId: photo.id, alteration: 'sleep', day: State.day });
+        this.notify('Your photos feel... different today.');
+      }
+    }
+
+    // Film replenish
+    State.film = Math.min(20, State.film + 3);
+
+    // Restore some memory stability
+    State.memory_stability = Math.min(100, State.memory_stability + 10);
+
+    Audio_.playDrone(55);
+    this.updateHUD();
+  },
+
+  openCamera() {
+    Camera.openCamera();
+  },
+
+  openAlbum() {
+    const screen = document.getElementById('album-screen');
+    const grid = document.getElementById('photo-grid');
+    grid.innerHTML = '';
+
+    if (State.photos.length === 0) {
+      grid.innerHTML = '<p style="color:#5a8a6a;text-align:center;grid-column:1/-1">No photographs taken yet.</p>';
+    } else {
+      State.photos.forEach((photo, idx) => {
+        const item = document.createElement('div');
+        item.className = 'photo-item' + (photo.altered ? ' changed' : '');
+
+        const canvas = document.createElement('canvas');
+        canvas.width = 280;
+        canvas.height = 210;
+        const ctx = canvas.getContext('2d');
+        Renderer.drawScene(ctx, photo.location, 280, 210, true, photo);
+
+        if (photo.hasRed) {
+          ctx.fillStyle = 'rgba(139, 20, 20, 0.12)';
+          ctx.fillRect(0, 0, 280, 210);
+        }
+
+        item.appendChild(canvas);
+
+        const label = document.createElement('div');
+        label.className = 'photo-label';
+        label.textContent = `Day ${photo.day} · ${photo.time}` + (photo.altered ? ' ⚠' : '');
+        item.appendChild(label);
+
+        item.onclick = () => PhotoSystem.viewPhoto(photo);
+        grid.appendChild(item);
+      });
+    }
+
+    screen.classList.add('active');
+  },
+
+  closeAlbum() {
+    document.getElementById('album-screen').classList.remove('active');
+  },
+
+  openNotebook() {
+    const screen = document.getElementById('notebook-screen');
+    const entries = document.getElementById('notebook-entries');
+    entries.innerHTML = '';
+
+    if (State.notes.length === 0) {
+      entries.innerHTML = '<p style="color:#5a8a6a;text-align:center">No notes yet.</p>';
+    } else {
+      State.notes.forEach(note => {
+        const entry = document.createElement('div');
+        entry.className = 'note-entry';
+        entry.innerHTML = `<div class="note-day">Day ${note.day || State.day}</div>${note.text}`;
+        entries.appendChild(entry);
+      });
+    }
+
+    screen.classList.add('active');
+  },
+
+  closeNotebook() {
+    document.getElementById('notebook-screen').classList.remove('active');
+  },
+
+  addNote(text) {
+    State.notes.push({ text, day: State.day });
+  },
+
+  startDialogue(characterId, dialogueId) {
+    Narrative.startDialogue(characterId, dialogueId);
+  },
+
+  startDialogueWithText(speaker, text) {
+    document.getElementById('speaker-name').textContent = speaker;
+    document.getElementById('dialogue-text').textContent = '';
+    document.getElementById('dialogue-choices').innerHTML = '';
+    document.getElementById('dialogue-box').classList.add('active');
+
+    // Type out text
+    let i = 0;
+    const typeInterval = setInterval(() => {
+      if (i < text.length) {
+        document.getElementById('dialogue-text').textContent += text[i];
+        i++;
+      } else {
+        clearInterval(typeInterval);
+        // Add close button
+        const choicesEl = document.getElementById('dialogue-choices');
+        const btn = document.createElement('button');
+        btn.className = 'choice-btn';
+        btn.textContent = '[Continue]';
+        btn.onclick = () => Narrative.closeDialogue();
+        choicesEl.appendChild(btn);
+      }
+    }, 25);
+  },
+
+  showLocationName() {
+    const el = document.getElementById('location-name');
+    const loc = Locations[State.location];
+    if (loc) {
+      el.textContent = loc.name;
+      el.classList.add('active');
+      setTimeout(() => el.classList.remove('active'), 3000);
+    }
+  },
+
+  updateHUD() {
+    document.getElementById('hud-day').textContent = 'DAY ' + State.day;
+    document.getElementById('hud-time').textContent = State.getTimeString();
+  },
+
+  updateNavigation() {
+    const navBar = document.getElementById('nav-bar');
+    const hotspotPanel = document.getElementById('hotspot-panel');
+    const loc = Locations[State.location];
+    if (!loc) { navBar.classList.remove('active'); hotspotPanel.classList.remove('active'); return; }
+
+    navBar.innerHTML = '';
+    hotspotPanel.innerHTML = '';
+
+    // Navigation buttons
+    if (loc.connections && loc.connections.length > 0) {
+      loc.connections.forEach(connId => {
+        const connLoc = Locations[connId];
+        if (!connLoc) return;
+        const btn = document.createElement('button');
+        btn.className = 'nav-btn';
+        btn.innerHTML = '<span class="nav-arrow">→</span>' + connLoc.name;
+        btn.onclick = () => this.navigateTo(connId);
+        navBar.appendChild(btn);
+      });
+    }
+
+    // Sleep button (only in apartment at night)
+    if (State.location === 'apartment_407' && (State.isNight() || State.hour >= 21)) {
+      const sleepBtn = document.createElement('button');
+      sleepBtn.className = 'nav-btn sleep-btn';
+      sleepBtn.innerHTML = '<span class="nav-arrow">☾</span>Sleep';
+      sleepBtn.onclick = () => this.sleep();
+      navBar.appendChild(sleepBtn);
+    }
+
+    navBar.classList.add('active');
+
+    // Hotspot buttons
+    if (loc.hotspots && loc.hotspots.length > 0) {
+      loc.hotspots.forEach(spot => {
+        const btn = document.createElement('button');
+        btn.className = 'hotspot-btn';
+        btn.textContent = spot.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        btn.onclick = () => this.interactHotspot(spot);
+        hotspotPanel.appendChild(btn);
+      });
+      hotspotPanel.classList.add('active');
+    } else {
+      hotspotPanel.classList.remove('active');
+    }
+  },
+
+  notify(text) {
+    const el = document.getElementById('notification');
+    el.textContent = text;
+    el.style.display = 'block';
+    el.style.animation = 'none';
+    el.offsetHeight; // Force reflow
+    el.style.animation = 'fadeInOut 2.5s forwards';
+    setTimeout(() => { el.style.display = 'none'; }, 2500);
+  },
+
+  checkEnding() {
+    if (State.day >= 7 || State.hasFlag('ending_triggered')) {
+      const endingId = Events.checkEndingConditions();
+      if (endingId && !State.endingsUnlocked.includes(endingId)) {
+        State.endingsUnlocked.push(endingId);
+        State.addFlag('ending_triggered');
+        this.showEnding(endingId);
+      }
+    }
+  },
+
+  showEnding(endingId) {
+    const ending = Endings[endingId];
+    if (!ending) return;
+
+    document.getElementById('hud').classList.remove('active');
+    document.getElementById('ending-title').textContent = ending.title;
+    document.getElementById('ending-text').textContent = ending.text;
+    document.getElementById('ending-screen').classList.add('active');
+
+    Audio_.playDrone(30);
+    Audio_.playUnsettling();
+  },
+
+  returnToTitle() {
+    document.getElementById('ending-screen').classList.remove('active');
+    document.getElementById('hud').classList.remove('active');
+    document.getElementById('title-screen').classList.add('active');
+    State.reset();
+  }
+};
+
+// ==================== INITIALIZE ====================
+window.addEventListener('DOMContentLoaded', () => {
+  Game.init();
+
+  // Handle visibility change
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      // Auto-save when tab hidden
+      if (State.day > 0) {
+        const saves = Game.getSaves();
+        if (!saves[0]) saves[0] = {};
+        saves[0] = { data: State.serialize(), timestamp: Date.now() };
+        localStorage.setItem('vesper_saves', JSON.stringify(saves));
+      }
+    }
+  });
+});
+</script>
+</body>
+</html>
