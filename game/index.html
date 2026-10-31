@@ -1187,6 +1187,21 @@ const Characters = {
         { speaker: '', text: "When you photograph it from behind, the photo shows it facing you.", delay: 4000 },
         { speaker: '', text: "Its face is your face.", delay: 5500 },
         { speaker: '', text: "[Phenomenon: The Borrowed Face] [WARNING: Self-identity under threat]", delay: 7000 }
+      ],
+      blocked_figure_speaks: [
+        { speaker: '', text: "It turns. Slowly. Deliberately.", delay: 0 },
+        { speaker: '', text: "The face is yours. But older. Tired.", delay: 2000 },
+        { speaker: 'The Blocked Figure', text: "You'll end up here too. Eventually.", delay: 4000 },
+        { speaker: 'The Blocked Figure', text: "This is where the city puts people it can't use anymore. People who remember too much.", delay: 6500 },
+        { speaker: 'The Blocked Figure', text: "I was a photographer once. Like you.", delay: 9000 },
+        { speaker: '', text: "[The Blocked Figure was once a photographer] [This is the fate of those who remember too much] [Identity threat]", delay: 11500 }
+      ],
+      blocked_figure_warning: [
+        { speaker: 'The Blocked Figure', text: "Don't trust the Dealer. Don't trust Elias.", delay: 0 },
+        { speaker: 'The Blocked Figure', text: "Trust yourself. Trust the photographs.", delay: 2000 },
+        { speaker: 'The Blocked Figure', text: "And whatever you do... don't let them take your camera.", delay: 4500 },
+        { speaker: '', text: "The figure turns back to face the sealed district. It won't speak again.", delay: 6500 },
+        { speaker: '', text: "[WARNING: Don't trust the Dealer or Elias] [Your camera is your most important asset] [Blocked Figure won't speak again]", delay: 9000 }
       ]
     }
   },
@@ -1203,6 +1218,57 @@ const Characters = {
         { speaker: 'The Original', text: "You've been the photograph all along.", delay: 4500 },
         { speaker: 'The Original', text: "I'm the one who takes the pictures. You're the one in them.", delay: 6500 },
         { speaker: '', text: "[FINAL TRUTH — or is it?] [Ending conditions met]", delay: 8500 }
+      ],
+      the_truth: [
+        { speaker: 'The Original', text: "Let me explain.", delay: 0 },
+        { speaker: 'The Original', text: "Years ago, I took a photograph of a perfect city. Vesper.", delay: 2000 },
+        { speaker: 'The Original', text: "The photograph was so perfect, it became real. The city came alive.", delay: 4500 },
+        { speaker: 'The Original', text: "But photographs need maintenance. They fade. They need... refreshing.", delay: 7000 },
+        { speaker: 'The Original', text: "So I created a cycle. A photographer who would come every seven days. Document everything. Keep the city vivid.", delay: 10000 },
+        { speaker: 'The Original', text: "That photographer is you. Or... a version of you.", delay: 12500 },
+        { speaker: 'The Original', text: "Every seven days, you arrive. You explore. You photograph. Then you forget. And the cycle repeats.", delay: 15500 },
+        { speaker: '', text: "[TRUTH: You are a created photographer in a cycle to maintain Vesper] [The Original created you] [This has happened many times]", delay: 18000 }
+      ],
+      the_choice: [
+        { speaker: 'The Original', text: "Now you have a choice.", delay: 0 },
+        { speaker: 'The Original', text: "Take my place. Become the new Original. Maintain Vesper forever.", delay: 2500 },
+        { speaker: 'The Original', text: "Or destroy the camera. End the cycle. Let Vesper fade.", delay: 5000 },
+        { speaker: 'The Original', text: "But if you destroy the camera... everyone here disappears. Elias. Mira. The child. All of them.", delay: 8000 },
+        { speaker: 'The Original', text: "They're not real. Not the way you're real. But they feel real. Don't they?", delay: 11000 },
+        { speaker: '', text: "What do you choose?", choices: [
+          { text: "Take the camera. Become the new Original. [ENDING: The Photographer]", next: 'ending_photographer' },
+          { text: "Destroy the camera. End Vesper. [ENDING: The Liberation]", next: 'ending_liberation' },
+          { text: "Refuse both. Find another way. [ENDING: The Third Path]", next: 'ending_third_path' }
+        ]}
+      ],
+      ending_photographer: [
+        { speaker: '', text: "You take the camera. It feels right. It feels like coming home.", delay: 0 },
+        { speaker: '', text: "The Original smiles. Fades. Becomes part of the photograph.", delay: 2000 },
+        { speaker: '', text: "You are the Photographer now. Vesper lives because of you.", delay: 4000 },
+        { speaker: '', text: "Every seven days, a new version of you arrives. You guide them. You protect the city.", delay: 6500 },
+        { speaker: '', text: "The cycle continues. Forever.", delay: 9000 },
+        { speaker: '', text: "[ENDING ACHIEVED: THE PHOTOGRAPHER] [You maintain Vesper for eternity]", delay: 11000 }
+      ],
+      ending_liberation: [
+        { speaker: '', text: "You raise the camera. And smash it against the wall.", delay: 0 },
+        { speaker: '', text: "The Original screams. The room shakes.", delay: 1500 },
+        { speaker: '', text: "Vesper begins to fade. The green light dims. The buildings dissolve.", delay: 3000 },
+        { speaker: '', text: "Elias. Mira. The child. The Photo Dealer. All of them... gone.", delay: 5500 },
+        { speaker: '', text: "But free. Finally free.", delay: 8000 },
+        { speaker: '', text: "You wake up in a white room. No memories. No city. Just silence.", delay: 10500 },
+        { speaker: '', text: "[ENDING ACHIEVED: THE LIBERATION] [Vesper is destroyed. Everyone is free. But gone.]", delay: 13000 }
+      ],
+      ending_third_path: [
+        { speaker: '', text: "No.", delay: 0 },
+        { speaker: '', text: "There's another way. There has to be.", delay: 1500 },
+        { speaker: 'The Original', text: "What do you mean?", delay: 3000 },
+        { speaker: '', text: "Vesper doesn't have to be maintained. It doesn't have to be destroyed.", delay: 4500 },
+        { speaker: '', text: "It can be... freed. Made real. Not a photograph. Not a cycle. Just... a city.", delay: 7000 },
+        { speaker: '', text: "You take out your camera. But instead of photographing... you show Vesper its own photograph.", delay: 9500 },
+        { speaker: '', text: "The city sees itself. Really sees itself. For the first time.", delay: 12000 },
+        { speaker: '', text: "And it chooses to live. Not as a photograph. But as itself.", delay: 14500 },
+        { speaker: '', text: "The cycle ends. But Vesper remains. Real. Alive. Free.", delay: 17000 },
+        { speaker: '', text: "[ENDING ACHIEVED: THE THIRD PATH] [Vesper becomes real. The cycle is broken. Everyone lives.]", delay: 19500 }
       ]
     }
   },
