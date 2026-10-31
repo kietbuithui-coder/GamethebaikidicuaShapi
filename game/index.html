@@ -174,6 +174,7 @@ canvas#main-canvas{position:absolute;top:0;left:0;width:100%;height:100%;image-r
 <button class="hud-btn" onclick="Game.openCamera()">📷</button>
 <button class="hud-btn" onclick="Game.openAlbum()">🖼</button>
 <button class="hud-btn" onclick="Game.openNotebook()">📓</button>
+<button class="hud-btn" onclick="Game.openHintMenu()">💡</button>
 </div>
 <div class="hud-right">
 <span class="hud-info" id="hud-day">DAY 1</span>
@@ -2102,6 +2103,9 @@ const Camera = {
       State.reality_distortion += 10;
       VisualFX.horrorMoment();
     }
+    
+    // Check puzzles after taking photo
+    setTimeout(() => PuzzleSystem.checkPuzzles(), 1000);
   },
 
   triggerPhotoReactions(loc, subjects, photo) {
@@ -3175,6 +3179,9 @@ const Events = {
       if (shouldTrigger) {
         State.eventsTriggered.push(evt.id);
         this.executeEvent(evt);
+        
+        // Check puzzles after event
+        setTimeout(() => PuzzleSystem.checkPuzzles(), 2000);
       }
     });
   },
@@ -3601,7 +3608,283 @@ const Events = {
   // Ending conditions are now handled by EndingSystem.checkEnding()
 };
 
-// ==================== ENDING SYSTEM ====================
+// ==================== PUZZLE SYSTEM ====================
+const PuzzleSystem = {
+  activePuzzle: null,
+  completedPuzzles: [],
+  hints: {},
+
+  puzzles: {
+    hallway_door: {
+      id: 'hallway_door',
+      name: 'The Hallway Door Mystery',
+      description: 'Có bao nhiêu cánh cửa trong hành lang? Photos cho thấy những con số khác nhau.',
+      type: 'observation',
+      difficulty: 1,
+      requiredPhotos: ['hallway'],
+      hint: 'So sánh các photos của hành lang vào các ngày khác nhau',
+      solutions: {
+        safe: { action: 'document', text: 'Document all door changes', result: 'gain_evidence' },
+        risky: { action: 'open_extra', text: 'Open the extra door', result: 'unlock_secret' }
+      },
+      check: () => {
+        const hallwayPhotos = State.photos.filter(p => p.location === 'hallway');
+        return hallwayPhotos.length >= 2;
+      }
+    },
+    missing_person: {
+      id: 'missing_person',
+      name: 'The Missing Person',
+      description: 'Một người đã biến mất. Tìm manh mối từ photos và dialogues.',
+      type: 'deduction',
+      difficulty: 2,
+      requiredEvidence: 3,
+      hint: 'Kiểm tra photos có anomalies "removed_subject"',
+      solutions: {
+        investigate: { action: 'investigate', text: 'Investigate disappearance', result: 'find_truth' },
+        ignore: { action: 'ignore', text: 'Ignore it', result: 'lose_trust' }
+      },
+      check: () => {
+        return State.evidence_collected >= 3 && State.peopleDisappeared >= 1;
+      }
+    },
+    color_sequence: {
+      id: 'color_sequence',
+      name: 'The Color Sequence',
+      description: 'Màu đỏ xuất hiện theo pattern nào? Tìm sequence đúng.',
+      type: 'logic',
+      difficulty: 3,
+      requiredPhotos: ['red'],
+      hint: 'Đếm số lần red xuất hiện và vị trí',
+      solutions: {
+        correct: { action: 'follow_pattern', text: 'Follow the red pattern', result: 'unlock_red_path' },
+        wrong: { action: 'ignore_pattern', text: 'Ignore the pattern', result: 'increase_distortion' }
+      },
+      check: () => {
+        return State.photosWithRed >= 2;
+      }
+    },
+    time_loop: {
+      id: 'time_loop',
+      name: 'The Time Loop',
+      description: 'Photos được chụp vào cùng một thời điểm nhưng khác ngày. Tại sao?',
+      type: 'memory',
+      difficulty: 2,
+      requiredPhotos: ['apartment_407'],
+      hint: 'So sánh timestamps của photos',
+      solutions: {
+        remember: { action: 'accept_loop', text: 'Accept you are in a loop', result: 'gain_memory' },
+        deny: { action: 'deny_loop', text: 'Deny the loop', result: 'lose_stability' }
+      },
+      check: () => {
+        const apartmentPhotos = State.photos.filter(p => p.location === 'apartment_407');
+        return apartmentPhotos.length >= 3;
+      }
+    },
+    hidden_room: {
+      id: 'hidden_room',
+      name: 'The Hidden Room',
+      description: 'Có một căn phòng không có trên map. Tìm nó qua photos.',
+      type: 'exploration',
+      difficulty: 3,
+      requiredAnomalies: ['extra_door', 'wrong_architecture'],
+      hint: 'Tìm photos với anomalies "extra_door"',
+      solutions: {
+        enter: { action: 'enter_room', text: 'Enter the hidden room', result: 'discover_truth' },
+        avoid: { action: 'avoid_room', text: 'Avoid the room', result: 'stay_safe' }
+      },
+      check: () => {
+        const anomalyPhotos = State.photos.filter(p => 
+          p.anomalies.includes('extra_door') || p.anomalies.includes('wrong_architecture')
+        );
+        return anomalyPhotos.length >= 1;
+      }
+    },
+    impostor: {
+      id: 'impostor',
+      name: 'The Impostor',
+      description: 'Một NPC không phải là người thật. Tìm ra ai.',
+      type: 'observation',
+      difficulty: 3,
+      requiredPhotos: ['elias', 'mira', 'receptionist'],
+      hint: 'So sánh NPC trong photos với thực tế',
+      solutions: {
+        confront: { action: 'confront', text: 'Confront the impostor', result: 'reveal_truth' },
+        silent: { action: 'stay_silent', text: 'Stay silent', result: 'maintain_peace' }
+      },
+      check: () => {
+        return State.trust.elias < 40 || State.trust.mira < 40;
+      }
+    },
+    archive_code: {
+      id: 'archive_code',
+      name: 'The Archive Code',
+      description: 'Archive room cần code để mở. Tìm code từ photos.',
+      type: 'logic',
+      difficulty: 4,
+      requiredEvidence: 5,
+      hint: 'Code là số photos bạn đã chụp',
+      solutions: {
+        correct_code: { action: 'enter_code', text: 'Enter the code', result: 'unlock_archive' },
+        wrong_code: { action: 'guess_code', text: 'Guess the code', result: 'lock_permanently' }
+      },
+      check: () => {
+        return State.hasFlag('archive_explored') && State.totalPhotosTaken >= 5;
+      }
+    },
+    final_choice: {
+      id: 'final_choice',
+      name: 'The Final Choice',
+      description: 'End game: Duy trì Vesper, phá hủy nó, hay tìm cách khác?',
+      type: 'moral',
+      difficulty: 5,
+      requiredFlags: ['ending_triggered'],
+      hint: 'Không có hint - đây là lựa chọn của bạn',
+      solutions: {
+        photographer: { action: 'maintain', text: 'Become the Photographer', result: 'ending_photographer' },
+        liberation: { action: 'destroy', text: 'Destroy Vesper', result: 'ending_liberation' },
+        third_path: { action: 'free', text: 'Free Vesper', result: 'ending_third_path' }
+      },
+      check: () => {
+        return State.day >= 7;
+      }
+    }
+  },
+
+  checkPuzzles() {
+    for (let [puzzleId, puzzle] of Object.entries(this.puzzles)) {
+      if (this.completedPuzzles.includes(puzzleId)) continue;
+      
+      if (puzzle.check()) {
+        this.activePuzzle = puzzle;
+        this.showPuzzle(puzzle);
+        return;
+      }
+    }
+  },
+
+  showPuzzle(puzzle) {
+    const screen = document.getElementById('ending-screen');
+    const titleEl = document.getElementById('ending-title');
+    const textEl = document.getElementById('ending-text');
+
+    titleEl.textContent = `🧩 PUZZLE: ${puzzle.name}`;
+    
+    let html = `<div style="text-align:left;max-width:600px;margin:0 auto">`;
+    html += `<div style="color:#a0b0a0;font-size:14px;line-height:1.8;margin-bottom:20px">${puzzle.description}</div>`;
+    html += `<div style="color:#5a8a6a;font-size:12px;margin-bottom:20px">Difficulty: ${'⭐'.repeat(puzzle.difficulty)} | Type: ${puzzle.type}</div>`;
+    html += `<div style="color:#7affb2;font-size:13px;margin-bottom:20px">💡 Hint: ${puzzle.hint}</div>`;
+    html += `<div style="margin-top:30px">`;
+    
+    for (let [solutionId, solution] of Object.entries(puzzle.solutions)) {
+      html += `<button class="menu-btn" onclick="PuzzleSystem.solvePuzzle('${puzzle.id}', '${solutionId}')" style="width:100%;margin:10px 0">${solution.text}</button>`;
+    }
+    
+    html += `</div></div>`;
+    textEl.innerHTML = html;
+    screen.classList.add('active');
+
+    VisualFX.strongVignette(true);
+    Audio_.playTone(400, 0.5, 'sine', 0.1);
+  },
+
+  solvePuzzle(puzzleId, solutionId) {
+    const puzzle = this.puzzles[puzzleId];
+    const solution = puzzle.solutions[solutionId];
+    
+    // Apply result
+    this.applyPuzzleResult(solution.result);
+    
+    // Mark complete
+    this.completedPuzzles.push(puzzleId);
+    this.activePuzzle = null;
+    
+    // Close screen
+    document.getElementById('ending-screen').classList.remove('active');
+    VisualFX.strongVignette(false);
+    
+    // Notify
+    Game.notify(`Puzzle completed: ${puzzle.name}`);
+    Audio_.playTone(600, 0.3, 'sine', 0.15);
+    
+    // Check for more puzzles
+    setTimeout(() => this.checkPuzzles(), 2000);
+  },
+
+  applyPuzzleResult(result) {
+    switch(result) {
+      case 'gain_evidence':
+        State.evidence_collected += 3;
+        Game.addNote('Puzzle: Gained evidence about the hallway');
+        break;
+      case 'unlock_secret':
+        State.addFlag('hallway_secret_unlocked');
+        Game.addNote('Puzzle: Unlocked secret hallway path');
+        break;
+      case 'find_truth':
+        State.truth_exposure += 10;
+        Game.addNote('Puzzle: Found truth about missing person');
+        break;
+      case 'lose_trust':
+        State.trust.elias -= 10;
+        State.trust.mira -= 10;
+        Game.addNote('Puzzle: Lost trust with NPCs');
+        break;
+      case 'unlock_red_path':
+        State.addFlag('red_path_unlocked');
+        State.reality_distortion += 5;
+        Game.addNote('Puzzle: Unlocked red color path');
+        break;
+      case 'increase_distortion':
+        State.reality_distortion += 10;
+        Game.addNote('Puzzle: Reality distortion increased');
+        break;
+      case 'gain_memory':
+        State.memory_stability += 10;
+        State.addFlag('loop_aware');
+        Game.addNote('Puzzle: Gained memory of the loop');
+        break;
+      case 'lose_stability':
+        State.memory_stability -= 15;
+        Game.addNote('Puzzle: Memory stability decreased');
+        break;
+      case 'discover_truth':
+        State.addFlag('hidden_room_discovered');
+        State.truth_exposure += 15;
+        Game.addNote('Puzzle: Discovered hidden room truth');
+        break;
+      case 'stay_safe':
+        State.photo_integrity += 10;
+        Game.addNote('Puzzle: Stayed safe, maintained integrity');
+        break;
+      case 'reveal_truth':
+        State.addFlag('impostor_revealed');
+        State.truth_exposure += 20;
+        Game.addNote('Puzzle: Revealed the impostor');
+        break;
+      case 'maintain_peace':
+        State.suspicion_city -= 10;
+        Game.addNote('Puzzle: Maintained peace in Vesper');
+        break;
+      case 'unlock_archive':
+        State.addFlag('archive_unlocked');
+        State.evidence_collected += 5;
+        Game.addNote('Puzzle: Unlocked full archive access');
+        break;
+      case 'lock_permanently':
+        State.photo_integrity -= 20;
+        Game.addNote('Puzzle: Archive locked permanently');
+        break;
+    }
+  },
+
+  showHint(puzzleId) {
+    const puzzle = this.puzzles[puzzleId];
+    if (puzzle) {
+      Game.notify(`💡 ${puzzle.hint}`);
+    }
+  }
+};
 const EndingSystem = {
   endings: {
     ending_perfect_photo: {
@@ -4505,6 +4788,9 @@ const Game = {
         changes.slice(1).forEach((c, i) => {
           setTimeout(() => Game.notify(c), i * 3000);
         });
+        
+        // Check puzzles after consequences
+        setTimeout(() => PuzzleSystem.checkPuzzles(), (changes.length) * 3000);
       }, 2000);
 
       Audio_.playDrone(55);
@@ -4691,11 +4977,23 @@ const Game = {
 
   checkEnding() {
     if (State.day >= 7 || State.hasFlag('ending_triggered')) {
+      // Check puzzles first
+      PuzzleSystem.checkPuzzles();
+      
       const endingId = EndingSystem.checkEnding();
       if (endingId && !State.endingsUnlocked.includes(endingId)) {
         State.addFlag('ending_triggered');
         this.showEnding(endingId);
       }
+    }
+  },
+
+  openHintMenu() {
+    const activePuzzle = PuzzleSystem.activePuzzle;
+    if (activePuzzle) {
+      PuzzleSystem.showHint(activePuzzle.id);
+    } else {
+      this.notify('No active puzzle');
     }
   },
 
