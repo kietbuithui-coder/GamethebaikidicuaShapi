@@ -108,6 +108,43 @@ canvas#main-canvas{position:absolute;top:0;left:0;width:100%;height:100%;image-r
 @keyframes locationFade{0%{opacity:0}20%{opacity:0.8}80%{opacity:0.8}100%{opacity:0}}
 .glitch{animation:glitch 0.1s linear}
 @keyframes glitch{0%{transform:translate(0)}25%{transform:translate(-2px,1px)}50%{transform:translate(2px,-1px)}75%{transform:translate(-1px,2px)}100%{transform:translate(0)}}
+
+/* Visual Polish Effects */
+.screen-fade{animation:screenFade 0.8s ease-in-out}
+@keyframes screenFade{0%{opacity:0}100%{opacity:1}}
+
+.breathing-light{animation:breathingLight 4s ease-in-out infinite}
+@keyframes breathingLight{0%,100%{filter:brightness(1)}50%{filter:brightness(1.1)}}
+
+.flicker{animation:flicker 0.15s infinite}
+@keyframes flicker{0%,100%{opacity:1}50%{opacity:0.8}}
+
+.pulse-red{animation:pulseRed 2s ease-in-out infinite}
+@keyframes pulseRed{0%,100%{box-shadow:0 0 0 rgba(139,0,0,0)}50%{box-shadow:0 0 20px rgba(139,0,0,0.3)}}
+
+.slide-in{animation:slideIn 0.5s ease-out}
+@keyframes slideIn{0%{transform:translateY(20px);opacity:0}100%{transform:translateY(0);opacity:1}}
+
+.typewriter{overflow:hidden;border-right:2px solid #7affb2;white-space:nowrap;animation:typing 2s steps(40,end),blink-caret 0.75s step-end infinite}
+@keyframes typing{from{width:0}to{width:100%}}
+@keyframes blink-caret{from,to{border-color:transparent}50%{border-color:#7affb2}}
+
+.shake{animation:shake 0.5s cubic-bezier(.36,.07,.19,.97) both}
+@keyframes shake{10%,90%{transform:translate3d(-1px,0,0)}20%,80%{transform:translate3d(2px,0,0)}30%,50%,70%{transform:translate3d(-3px,0,0)}40%,60%{transform:translate3d(3px,0,0)}}
+
+.vignette-strong{box-shadow:inset 0 0 150px rgba(0,0,0,0.9)}
+
+.chromatic-aberration{animation:chromatic 0.3s ease-in-out}
+@keyframes chromatic{0%{text-shadow:0 0 0 #fff}50%{text-shadow:2px 0 #ff0000,-2px 0 #00ffff}100%{text-shadow:0 0 0 #fff}}
+
+.reality-tear{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:100;background:linear-gradient(0deg,transparent 49%,rgba(139,0,0,0.1) 50%,transparent 51%);background-size:100% 4px;opacity:0;transition:opacity 0.5s}
+.reality-tear.active{opacity:1;animation:tearScroll 0.5s linear infinite}
+@keyframes tearScroll{0%{background-position:0 0}100%{background-position:0 100px}}
+
+.scanlines{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:99;background:repeating-linear-gradient(0deg,rgba(0,0,0,0.1) 0px,rgba(0,0,0,0.1) 1px,transparent 1px,transparent 3px);opacity:0.3}
+
+.nightmare-overlay{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:98;background:radial-gradient(ellipse at center,transparent 30%,rgba(139,0,0,0.05) 70%,rgba(0,0,0,0.3) 100%);opacity:0;transition:opacity 2s}
+.nightmare-overlay.active{opacity:1}
 </style>
 </head>
 <body>
@@ -212,6 +249,10 @@ canvas#main-canvas{position:absolute;top:0;left:0;width:100%;height:100%;image-r
 <div id="notification"></div>
 <!-- TRANSITION -->
 <div id="transition-overlay"></div>
+<!-- VISUAL EFFECTS LAYERS -->
+<div class="reality-tear" id="reality-tear"></div>
+<div class="scanlines" id="scanlines"></div>
+<div class="nightmare-overlay" id="nightmare-overlay"></div>
 <!-- ENDING SCREEN -->
 <div id="ending-screen" class="screen">
 <h2 id="ending-title"></h2>
@@ -277,6 +318,153 @@ const Assets = {
     });
   }
 };
+
+// ==================== VISUAL EFFECTS MANAGER ====================
+const VisualFX = {
+  smoothTransition(callback, duration = 800) {
+    const overlay = document.getElementById('transition-overlay');
+    overlay.style.transition = `opacity ${duration}ms ease-in-out`;
+    overlay.classList.add('active');
+    
+    setTimeout(() => {
+      if (callback) callback();
+      setTimeout(() => {
+        overlay.classList.remove('active');
+      }, 100);
+    }, duration);
+  },
+
+  screenShake(intensity = 5, duration = 500) {
+    const container = document.getElementById('game-container');
+    container.style.animation = `shake ${duration}ms cubic-bezier(.36,.07,.19,.97) both`;
+    
+    let startTime = Date.now();
+    let shakeInterval = setInterval(() => {
+      let elapsed = Date.now() - startTime;
+      if (elapsed > duration) {
+        clearInterval(shakeInterval);
+        container.style.animation = '';
+        return;
+      }
+      
+      let x = (Math.random() - 0.5) * intensity;
+      let y = (Math.random() - 0.5) * intensity;
+      container.style.transform = `translate(${x}px, ${y}px)`;
+    }, 16);
+  },
+
+  chromaticAberration(element, duration = 300) {
+    element.classList.add('chromatic-aberration');
+    setTimeout(() => {
+      element.classList.remove('chromatic-aberration');
+    }, duration);
+  },
+
+  realityTear(active = true) {
+    const tear = document.getElementById('reality-tear');
+    if (active) {
+      tear.classList.add('active');
+      setTimeout(() => {
+        tear.classList.remove('active');
+      }, 3000);
+    } else {
+      tear.classList.remove('active');
+    }
+  },
+
+  nightmareMode(active = true) {
+    const overlay = document.getElementById('nightmare-overlay');
+    if (active) {
+      overlay.classList.add('active');
+    } else {
+      overlay.classList.remove('active');
+    }
+  },
+
+  scanlines(active = true) {
+    const scanlines = document.getElementById('scanlines');
+    scanlines.style.opacity = active ? '0.3' : '0';
+  },
+
+  flickerLight(element, duration = 2000) {
+    element.classList.add('flicker');
+    setTimeout(() => {
+      element.classList.remove('flicker');
+    }, duration);
+  },
+
+  dangerPulse(element, duration = 2000) {
+    element.classList.add('pulse-red');
+    setTimeout(() => {
+      element.classList.remove('pulse-red');
+    }, duration);
+  },
+
+  fadeIn(element, duration = 500) {
+    element.style.opacity = '0';
+    element.style.transition = `opacity ${duration}ms ease-in`;
+    setTimeout(() => {
+      element.style.opacity = '1';
+    }, 50);
+  },
+
+  slideIn(element) {
+    element.classList.add('slide-in');
+    setTimeout(() => {
+      element.classList.remove('slide-in');
+    }, 500);
+  },
+
+  typewriterEffect(element, text, speed = 50) {
+    element.textContent = '';
+    element.classList.add('typewriter');
+    let i = 0;
+    let typeInterval = setInterval(() => {
+      if (i < text.length) {
+        element.textContent += text.charAt(i);
+        i++;
+      } else {
+        clearInterval(typeInterval);
+        element.classList.remove('typewriter');
+      }
+    }, speed);
+  },
+
+  breathingLight(element, duration = 4000) {
+    element.classList.add('breathing-light');
+    element.style.animationDuration = `${duration}ms`;
+  },
+
+  strongVignette(active = true) {
+    const container = document.getElementById('game-container');
+    if (active) container.classList.add('vignette-strong');
+    else container.classList.remove('vignette-strong');
+  },
+
+  horrorMoment() {
+    this.screenShake(8, 600);
+    this.realityTear(true);
+    this.nightmareMode(true);
+    Audio_.playUnsettling();
+    setTimeout(() => this.nightmareMode(false), 3000);
+  },
+
+  cameraFlash() {
+    const flash = document.createElement('div');
+    flash.style.cssText = `position:fixed;top:0;left:0;width:100%;height:100%;background:white;opacity:0.8;pointer-events:none;z-index:1000;transition:opacity 0.3s`;
+    document.body.appendChild(flash);
+    setTimeout(() => { flash.style.opacity = '0'; setTimeout(() => flash.remove(), 300); }, 50);
+  },
+
+  glitchEffect(intensity = 1) {
+    if (Math.random() < 0.1 * intensity) {
+      const container = document.getElementById('game-container');
+      container.classList.add('glitch');
+      setTimeout(() => container.classList.remove('glitch'), 100);
+    }
+  }
+};
+
 const Audio_ = {
   ctx: null,
   masterGain: null,
@@ -1899,6 +2087,10 @@ const Camera = {
       return;
     }
 
+    // Camera flash effect
+    VisualFX.cameraFlash();
+    Audio_.playCameraShutter();
+
     const loc = State.location;
     const { anomalies, hasRed } = PhotoSystem.generateAnomaliesForLocation(loc);
 
@@ -1929,6 +2121,7 @@ const Camera = {
       State.addFlag('red_seen');
       Game.addNote('⚠ The unnamed color appeared in a photograph. The surrounding colors shifted when it appeared.');
       State.reality_distortion += 10;
+      VisualFX.horrorMoment();
     }
   },
 
@@ -2551,8 +2744,11 @@ const Renderer = {
       ctx.fillRect(0, 0, w, h);
     }
 
-    // Reality distortion effect
+    // Reality distortion effect - enhanced
     if (State.reality_distortion > 30) {
+      // Trigger glitch effects
+      VisualFX.glitchEffect(State.reality_distortion / 30);
+      
       if (Math.random() < 0.02) {
         this.glitchTimer = 5;
       }
@@ -2562,6 +2758,19 @@ const Renderer = {
         const glitchH = Math.random() * 20 + 5;
         ctx.drawImage(this.canvas, 0, glitchY, w, glitchH, Math.random() * 6 - 3, glitchY, w, glitchH);
       }
+      
+      // Red tint when distortion is high
+      if (State.reality_distortion > 60) {
+        ctx.fillStyle = `rgba(139, 0, 0, ${(State.reality_distortion - 60) / 200})`;
+        ctx.fillRect(0, 0, w, h);
+      }
+    }
+    
+    // Nightmare mode overlay
+    if (State.reality_distortion > 70 || State.memory_stability < 30) {
+      VisualFX.nightmareMode(true);
+    } else {
+      VisualFX.nightmareMode(false);
     }
   },
 
@@ -2817,6 +3026,7 @@ const Narrative = {
             this.showLine(lines);
           };
           choicesEl.appendChild(continueBtn);
+          VisualFX.slideIn(continueBtn);
         }
       }, 25);
     };
@@ -2979,14 +3189,20 @@ const Events = {
       case 'wakeUp':
         Game.addNote('Day ' + State.day + ': You wake up in Apartment 407. The light outside is the same pale green.');
         Game.showLocationName();
+        VisualFX.fadeIn(document.getElementById('game-container'), 1500);
+        VisualFX.breathingLight(document.getElementById('game-container'), 5000);
         break;
       case 'findNote':
         Game.startDialogueWithText('', 'You find a note on the table. The handwriting is yours:\n\n"Don\'t photograph the people who have seen you."\n\nOn the back:\n"And if a photo contains red, destroy it immediately."');
         Game.addNote('Found note in own handwriting. Warning about photographing people and the color red.');
+        VisualFX.typewriterEffect(document.getElementById('dialogue-text'), 'You find a note on the table...', 80);
+        VisualFX.chromaticAberration(document.getElementById('dialogue-text'), 1200);
         break;
       case 'eliasKnock':
         Audio_.playKnock();
         Game.notify('*knock knock knock*');
+        VisualFX.screenShake(3, 500);
+        VisualFX.flickerLight(document.getElementById('game-container'), 2000);
         setTimeout(() => {
           Game.transition('hallway');
           setTimeout(() => {
@@ -3001,6 +3217,8 @@ const Events = {
           photo.anomalies.push('altered_after_sleep');
           State.photoChanges.push({ photoId: photo.id, alteration: 'sleep_change', day: State.day });
           Game.notify('Something in your photos has changed...');
+          VisualFX.chromaticAberration(document.getElementById('game-container'), 1000);
+          VisualFX.screenShake(2, 400);
         }
         break;
       case 'miraEncounter':
@@ -3013,6 +3231,8 @@ const Events = {
         if (State.child_closeness === 0) {
           State.child_closeness = 1;
           Game.startDialogue('child_distant', 'first_sighting');
+          VisualFX.chromaticAberration(document.getElementById('game-container'), 600);
+          VisualFX.screenShake(2, 300);
         }
         break;
       case 'mirrorCheck':
@@ -3021,6 +3241,8 @@ const Events = {
           Game.addNote('You checked the mirror this morning. Your reflection looks normal. But was it looking back at you a moment too long?');
           if (State.photos.length > 0) {
             Game.addNote('⚠ One of your photographs seems to have changed overnight. The lighting is different.');
+            VisualFX.chromaticAberration(document.getElementById('game-container'), 800);
+            VisualFX.flickerLight(document.getElementById('game-container'), 2000);
           }
         }
         break;
@@ -3029,6 +3251,8 @@ const Events = {
           Game.startDialogueWithText('Elias', '"Good morning. I saw you were up late last night. The hallway lights were on until 2 AM."\n\nHe says this casually. But you were in your apartment. The hallway lights shouldn\'t be visible from there.\n\nHow does he know?');
           State.flags['elias_watches'] = true;
           State.trust.elias = Math.max(0, State.trust.elias - 5);
+          VisualFX.dangerPulse(document.getElementById('hud'));
+          VisualFX.screenShake(2, 400);
         }
         break;
       case 'hallwayChanged':
@@ -3036,6 +3260,8 @@ const Events = {
         Game.addNote('⚠ The hallway now has an extra door. You\'re certain it wasn\'t there yesterday.');
         Game.notify('The hallway feels... longer.');
         Audio_.playUnsettling();
+        VisualFX.screenShake(4, 500);
+        VisualFX.chromaticAberration(document.getElementById('game-container'), 1200);
         break;
       case 'noteChange':
         if (!State.hasFlag('note_changed')) {
@@ -3043,24 +3269,36 @@ const Events = {
           Game.startDialogueWithText('', 'You look at the note on your table again.\n\nThe handwriting is still yours.\nBut the words have changed.\n\n"Don\'t trust the ones who remember."\n\nYesterday it said something else. You\'re sure of it.\n\n...Aren\'t you?');
           State.memory_stability = Math.max(10, State.memory_stability - 5);
           State.reality_distortion += 3;
+          VisualFX.chromaticAberration(document.getElementById('dialogue-text'), 1500);
+          VisualFX.screenShake(2, 400);
         }
         break;
       case 'dealerEncounter':
         if (!State.hasFlag('dealer_met')) {
           State.addFlag('dealer_met');
           Game.startDialogue('photo_dealer', 'first_meeting');
+          VisualFX.breathingLight(document.getElementById('game-container'), 5000);
+          VisualFX.chromaticAberration(document.getElementById('game-container'), 800);
         }
         break;
       case 'nightSounds':
         Audio_.playWhisper();
         Game.notify('Whispers from the walls...');
         Game.addNote('Heard whispers at night. No source identified.');
+        VisualFX.nightmareMode(true);
+        VisualFX.flickerLight(document.getElementById('game-container'), 3000);
+        VisualFX.screenShake(2, 400);
+        setTimeout(() => VisualFX.nightmareMode(false), 5000);
         break;
       case 'hospitalEvent':
         if (!State.hasFlag('hospital_explored')) {
           State.addFlag('hospital_explored');
           Game.startDialogue('nurse_shadow', 'encounter');
           Game.addNote('The old hospital. Beds that look recently used. A shadow nurse who has no shadow.');
+          VisualFX.scanlines(true);
+          VisualFX.flickerLight(document.getElementById('game-container'), 3000);
+          VisualFX.nightmareMode(true);
+          setTimeout(() => VisualFX.nightmareMode(false), 4000);
         }
         break;
       case 'firstRedPhoto':
@@ -3071,10 +3309,17 @@ const Events = {
           Game.notify('The color appears.');
           Audio_.playUnsettling();
           State.reality_distortion += 15;
+          VisualFX.horrorMoment();
+          VisualFX.realityTear(true);
+          VisualFX.nightmareMode(true);
+          VisualFX.strongVignette(true);
+          setTimeout(() => { VisualFX.realityTear(false); VisualFX.nightmareMode(false); }, 5000);
         }
         break;
       case 'miraChildLink':
         Game.addNote('Mira claims the child you\'ve been seeing is her daughter. No one else remembers the child.');
+        VisualFX.screenShake(2, 400);
+        VisualFX.chromaticAberration(document.getElementById('game-container'), 800);
         break;
       case 'consequenceCheck':
         // Early choices start having consequences
@@ -3082,28 +3327,40 @@ const Events = {
           State.addFlag('consequence_photos');
           Game.addNote('⚠ You try to review your early photographs, but some are blank. The evidence you destroyed is gone. But something else is gone too — memories of what they showed.');
           State.memory_stability -= 10;
+          VisualFX.chromaticAberration(document.getElementById('game-container'), 800);
+          VisualFX.screenShake(2, 400);
         }
         if (State.hasFlag('red_unlocked') && State.photosWithRed >= 1 && !State.hasFlag('consequence_red')) {
           State.addFlag('consequence_red');
           Game.addNote('⚠ The walls in your apartment seem different today. The green light has a faint reddish tint at the edges. Is it spreading?');
           State.reality_distortion += 5;
+          VisualFX.nightmareMode(true);
+          VisualFX.strongVignette(true);
+          setTimeout(() => VisualFX.nightmareMode(false), 4000);
         }
         if (State.trust.elias < 30 && !State.hasFlag('consequence_elias_hostile')) {
           State.addFlag('consequence_elias_hostile');
           Game.addNote('⚠ Elias hasn\'t spoken to you in two days. But you can feel him watching. His shadow appears in your photographs.');
+          VisualFX.dangerPulse(document.getElementById('hud'));
         }
         if (State.trust.elias > 70 && !State.hasFlag('consequence_elias_ally')) {
           State.addFlag('consequence_elias_ally');
           Game.addNote('Elias left a note under your door: "Meet me at the subway at midnight. I can show you what\'s really there."');
           State.flags['subway_secret_available'] = true;
+          VisualFX.slideIn(document.getElementById('notebook'));
         }
         break;
       case 'eliasWarning':
         if (State.day >= 4) {
           if (State.trust.elias > 50) {
             Game.startDialogueWithText('Elias', '"Listen to me carefully. Tomorrow night, something will happen. The city will try to... reset. Don\'t let it. Stay awake. Document everything. It\'s the only way to break the cycle."\n\n[WARNING: Day 5 will bring a critical event] [Elias is helping you]');
+            VisualFX.dangerPulse(document.getElementById('hud'));
+            VisualFX.screenShake(2, 500);
           } else {
             Game.startDialogueWithText('Elias', '"You should be careful. The city knows you\'re investigating. It doesn\'t like people who ask too many questions."\n\n[WARNING: Your investigation hasn\'t gone unnoticed]');
+            VisualFX.screenShake(2, 300);
+            VisualFX.nightmareMode(true);
+            setTimeout(() => VisualFX.nightmareMode(false), 3000);
           }
         }
         break;
@@ -3111,23 +3368,38 @@ const Events = {
         State.peopleDisappeared += 1;
         Game.addNote('⚠ Someone is missing from the streets. No one seems to notice except you.');
         Game.notify('The streets feel emptier today.');
+        VisualFX.screenShake(2, 400);
+        VisualFX.chromaticAberration(document.getElementById('game-container'), 800);
+        VisualFX.nightmareMode(true);
+        setTimeout(() => VisualFX.nightmareMode(false), 3000);
         break;
       case 'subwayEvent':
         if (!State.hasFlag('subway_explored')) {
           State.addFlag('subway_explored');
           Game.startDialogue('shadow_man', 'encounter');
+          VisualFX.scanlines(true);
+          VisualFX.nightmareMode(true);
+          VisualFX.screenShake(2, 400);
+          setTimeout(() => VisualFX.nightmareMode(false), 5000);
         }
         break;
       case 'hotelEvent':
         if (!State.hasFlag('hotel_explored')) {
           State.addFlag('hotel_explored');
           Game.startDialogue('receptionist', 'encounter');
+          VisualFX.flickerLight(document.getElementById('game-container'), 2500);
+          VisualFX.strongVignette(true);
+          VisualFX.chromaticAberration(document.getElementById('game-container'), 1000);
         }
         break;
       case 'sealedEvent':
         if (!State.hasFlag('sealed_explored')) {
           State.addFlag('sealed_explored');
           Game.startDialogue('blocked_figure', 'encounter');
+          VisualFX.screenShake(3, 400);
+          VisualFX.chromaticAberration(document.getElementById('game-container'), 1200);
+          VisualFX.nightmareMode(true);
+          setTimeout(() => VisualFX.nightmareMode(false), 4000);
         }
         break;
       case 'archiveEvent':
@@ -3136,25 +3408,41 @@ const Events = {
           Game.addNote('⚠ Photo Archive found. Filing cabinets contain records of every photograph taken in Vesper. Including ones that haven\'t been taken yet.');
           State.flags['secret_room_available'] = true;
           Game.notify('The Archive reveals a hidden path...');
+          VisualFX.breathingLight(document.getElementById('game-container'), 6000);
+          VisualFX.chromaticAberration(document.getElementById('game-container'), 800);
         }
         break;
       case 'childNear':
         State.child_closeness = Math.min(7, State.child_closeness + 1);
         if (State.child_closeness >= 5) {
           Game.addNote('⚠ The child was in the hallway last night. Standing outside apartment 407.');
+          VisualFX.screenShake(4, 600);
+          VisualFX.nightmareMode(true);
+          VisualFX.chromaticAberration(document.getElementById('game-container'), 1000);
+          setTimeout(() => VisualFX.nightmareMode(false), 3000);
         }
         break;
       case 'finalDay':
         Game.addNote('Day 7. You feel like the city is watching you. All the evidence points to something.');
         Game.notify('This is the last day.');
         Audio_.playDrone(40);
+        VisualFX.screenShake(5, 1000);
+        VisualFX.strongVignette(true);
+        VisualFX.nightmareMode(true);
+        VisualFX.realityTear(true);
+        setTimeout(() => VisualFX.realityTear(false), 8000);
         break;
       case 'finalTruth':
         Game.transition('secret_room');
+        VisualFX.strongVignette(true);
+        VisualFX.nightmareMode(true);
+        VisualFX.realityTear(true);
         setTimeout(() => {
           Game.startDialogue('the_original', 'encounter');
           setTimeout(() => {
             Game.checkEnding();
+            VisualFX.horrorMoment();
+            setTimeout(() => VisualFX.realityTear(false), 5000);
           }, 10000);
         }, 2000);
         break;
@@ -3173,6 +3461,8 @@ const Events = {
           State.memory_stability = Math.max(5, State.memory_stability - 8);
           Game.notify('A memory surfaces...');
           Audio_.playWhisper();
+          VisualFX.chromaticAberration(document.getElementById('game-container'), 1500);
+          VisualFX.screenShake(3, 600);
         }
         break;
       case 'greenhouseEvent':
@@ -3180,6 +3470,9 @@ const Events = {
           State.addFlag('greenhouse_explored');
           Game.startDialogue('gardener', 'encounter');
           Game.addNote('The greenhouse plants are not green. They are magenta, pale yellow, translucent blue. "These are the real colors of Vesper."');
+          VisualFX.breathingLight(document.getElementById('game-container'), 4000);
+          VisualFX.chromaticAberration(document.getElementById('game-container'), 800);
+          VisualFX.screenShake(2, 400);
         }
         break;
       case 'schoolEvent':
@@ -3187,6 +3480,9 @@ const Events = {
           State.addFlag('school_explored');
           Game.startDialogue('teacher_voice', 'encounter');
           Game.addNote('The school chalkboard writes by itself. "IT REMEMBERS WHAT YOU FORGET." A voice from nowhere teaches lessons about erased residents.');
+          VisualFX.chromaticAberration(document.getElementById('game-container'), 1500);
+          VisualFX.flickerLight(document.getElementById('game-container'), 2000);
+          VisualFX.screenShake(2, 400);
         }
         break;
       case 'childInRoom':
@@ -3197,6 +3493,10 @@ const Events = {
           Game.notify('The child was in your room.');
           Audio_.playWhisper();
           State.memory_stability -= 15;
+          VisualFX.horrorMoment();
+          VisualFX.nightmareMode(true);
+          VisualFX.realityTear(true);
+          setTimeout(() => { VisualFX.nightmareMode(false); VisualFX.realityTear(false); }, 6000);
         }
         break;
       case 'miraUrgent':
@@ -3204,14 +3504,20 @@ const Events = {
           State.addFlag('mira_urgent');
           Game.startDialogueWithText('Mira', '"She\'s here. My daughter. She\'s in the hallway right now. Please... please photograph her. I need to see her face one more time. I need to remember what I\'ve forgotten."\n\n[Mira is desperate] [She needs you to photograph the child]');
           Game.addNote('⚠ Mira urgently wants you to photograph the child. She says it\'s the only way to remember.');
+          VisualFX.screenShake(3, 500);
+          VisualFX.chromaticAberration(document.getElementById('game-container'), 800);
         }
         break;
       case 'eliasSecretMeeting':
         if (!State.hasFlag('elias_secret_meeting')) {
           State.addFlag('elias_secret_meeting');
           Game.transition('subway');
+          VisualFX.nightmareMode(true);
           setTimeout(() => {
             Game.startDialogueWithText('Elias', '"You came. Good."\n\nHe leads you deeper into the subway tunnels. The tracks are dry, but you can feel vibrations. Something is coming.\n\n"There\'s a train. It comes every night at 3 AM. It goes to the place where the original photograph was taken. The real Vesper."\n\n"I can get us on. But once we go, we can\'t come back. Not as the same people."\n\n[CRITICAL CHOICE APPROACHING: The night train to the original Vesper] [Day 6 decision point]', 0);
+            VisualFX.screenShake(3, 600);
+            VisualFX.realityTear(true);
+            setTimeout(() => VisualFX.realityTear(false), 5000);
           }, 2000);
         }
         break;
@@ -3223,6 +3529,7 @@ const Events = {
           if (State.reality_distortion > 50) {
             Game.addNote('⚠ Elias says: "You still haven\'t remembered, have you?" What does he mean?');
             State.flags['elias_final_hint'] = true;
+            VisualFX.chromaticAberration(document.getElementById('game-container'), 1000);
           }
         }
         break;
@@ -3233,6 +3540,9 @@ const Events = {
           Game.addNote('⚠ The red is spreading. You can see it now — faint crimson veins in the walls, a reddish tint to the green light. The color that should not exist is returning.');
           Game.notify('The color red is spreading through Vesper.');
           Audio_.playUnsettling();
+          VisualFX.realityTear(true);
+          VisualFX.nightmareMode(true);
+          VisualFX.strongVignette(true);
           // Check if red is visible everywhere
           if (State.reality_distortion > 60) {
             State.redVisible = true;
@@ -3246,6 +3556,11 @@ const Events = {
           Game.addNote('⚠ Something is happening tonight. The city feels different. The air is heavy. Tomorrow is Day 7 — the last day. Everything comes to a head.');
           Game.notify('Tomorrow is the last day. Everything ends.');
           Audio_.playDrone(30);
+          VisualFX.screenShake(6, 800);
+          VisualFX.nightmareMode(true);
+          VisualFX.strongVignette(true);
+          VisualFX.realityTear(true);
+          setTimeout(() => VisualFX.realityTear(false), 5000);
           // Trigger special night atmosphere
           State.flags['final_night'] = true;
         }
@@ -3257,6 +3572,10 @@ const Events = {
           setTimeout(() => {
             Game.startDialogueWithText('', 'The train arrives. It\'s old. Black. The windows are dark.\n\nElias leads you aboard. The interior is empty except for two seats.\n\nThe train moves. Not on tracks — through darkness. Through the spaces between photographs.\n\nAfter an eternity, it stops.\n\nThe doors open to... Vesper. But different. Real. In full color.\n\nIncluding red.', 0);
             State.addFlag('real_vesper_reached');
+            VisualFX.horrorMoment();
+            VisualFX.realityTear(true);
+            VisualFX.nightmareMode(true);
+            setTimeout(() => { VisualFX.realityTear(false); VisualFX.nightmareMode(false); }, 10000);
           }, 3000);
         }
         break;
@@ -3265,12 +3584,20 @@ const Events = {
           State.addFlag('child_confronted');
           Game.startDialogueWithText('The Child', '...\n\nShe stands in front of you. Close. Too close.\n\nShe looks up. Her face...\n\nIt\'s your face. From years ago. When you were a child.\n\n"I remember you," she says. "You promised to come back."\n\n[TRUTH: The child is your younger self] [You forgot your own childhood] [Memory Stability critical]', 0);
           State.memory_stability -= 20;
+          VisualFX.horrorMoment();
+          VisualFX.nightmareMode(true);
+          VisualFX.realityTear(true);
+          setTimeout(() => { VisualFX.nightmareMode(false); VisualFX.realityTear(false); }, 8000);
         }
         break;
       case 'photoDealerFinal':
         if (State.hasFlag('dealer_met') && !State.hasFlag('dealer_final')) {
           State.addFlag('dealer_final');
           Game.startDialogueWithText('The Photo Dealer', '"This is it. The last day. You have two choices."\n\n"Give me the camera. I can end this. Vesper will fade. Everyone will be free. But you\'ll forget everything."\n\n"Or keep it. Walk through the door I\'ll show you. Become the new photographer. Maintain Vesper forever."\n\n[FINAL CHOICE: End Vesper or become its guardian]', 0);
+          VisualFX.strongVignette(true);
+          VisualFX.nightmareMode(true);
+          VisualFX.realityTear(true);
+          setTimeout(() => VisualFX.realityTear(false), 10000);
         }
         break;
     }
@@ -3575,10 +3902,7 @@ const Game = {
   },
 
   transition(location) {
-    const overlay = document.getElementById('transition-overlay');
-    overlay.classList.add('active');
-
-    setTimeout(() => {
+    VisualFX.smoothTransition(() => {
       State.location = location;
       Renderer.particles = [];
       this.updateHUD();
@@ -3608,11 +3932,18 @@ const Game = {
 
       // Check for events at this location
       Events.checkEvents();
-
-      setTimeout(() => {
-        overlay.classList.remove('active');
-      }, 800);
-    }, 800);
+      
+      // Visual effects based on location
+      if (location === 'subway' || location === 'hospital') {
+        VisualFX.scanlines(true);
+      } else {
+        VisualFX.scanlines(false);
+      }
+      
+      if (State.reality_distortion > 50) {
+        VisualFX.strongVignette(true);
+      }
+    }, 600);
   },
 
   navigateTo(location) {
@@ -3799,77 +4130,83 @@ const Game = {
     State.minute = 0;
     State.day++;
 
-    this.transition('apartment_407');
+    // Fade to black for sleep
+    VisualFX.smoothTransition(() => {
+      this.transition('apartment_407');
 
-    // Day transition sequence
-    let changes = [];
-    changes.push(`Day ${State.day} begins. The green light is the same.`);
+      // Day transition sequence
+      let changes = [];
+      changes.push(`Day ${State.day} begins. The green light is the same.`);
 
-    // Photos may change during sleep
-    if (State.photos.length > 0 && Math.random() < 0.3 + State.reality_distortion / 200) {
-      const photo = State.photos[Math.floor(Math.random() * State.photos.length)];
-      if (!photo.altered) {
-        photo.altered = true;
-        const alterations = ['new_figure', 'removed_subject', 'color_shift', 'text_appears', 'object_moved'];
-        const alteration = alterations[Math.floor(Math.random() * alterations.length)];
-        photo.anomalies.push(alteration);
-        State.photoChanges.push({ photoId: photo.id, alteration: 'sleep', day: State.day });
-        changes.push('⚠ A photograph has changed overnight.');
+      // Photos may change during sleep
+      if (State.photos.length > 0 && Math.random() < 0.3 + State.reality_distortion / 200) {
+        const photo = State.photos[Math.floor(Math.random() * State.photos.length)];
+        if (!photo.altered) {
+          photo.altered = true;
+          const alterations = ['new_figure', 'removed_subject', 'color_shift', 'text_appears', 'object_moved'];
+          const alteration = alterations[Math.floor(Math.random() * alterations.length)];
+          photo.anomalies.push(alteration);
+          State.photoChanges.push({ photoId: photo.id, alteration: 'sleep', day: State.day });
+          changes.push('⚠ A photograph has changed overnight.');
+          VisualFX.screenShake(3, 400);
+        }
       }
-    }
 
-    // New photos may appear
-    if (State.day >= 3 && Math.random() < 0.2 + State.reality_distortion / 300) {
-      const mysteryPhoto = PhotoSystem.createPhoto('apartment_407', ['unexplained_figure'], false, ['unknown']);
-      mysteryPhoto.day = State.day - 1;
-      mysteryPhoto.time = '03:33';
-      changes.push('⚠ A new photograph appeared in your album. You don\'t remember taking it.');
-    }
-
-    // Trust decay/growth
-    Object.keys(State.trust).forEach(npc => {
-      // Trust with people you ignored slowly decays
-      if (State.trust[npc] > 50) State.trust[npc] = Math.max(40, State.trust[npc] - 2);
-    });
-
-    // Memory stability decreases over time
-    State.memory_stability = Math.max(10, State.memory_stability - 3);
-
-    // Reality distortion increases
-    if (State.photosWithRed > 0) {
-      State.reality_distortion = Math.min(100, State.reality_distortion + 2);
-    }
-
-    // Film replenish
-    State.film = Math.min(20, State.film + 3);
-
-    // Consequence check
-    if (State.liedCount > 0 && State.day >= 4 && !State.hasFlag('lies_caught')) {
-      if (Math.random() < 0.3 * State.liedCount) {
-        changes.push('⚠ Someone noticed you weren\'t telling the truth.');
-        State.addFlag('lies_caught');
-        State.trust.elias = Math.max(0, State.trust.elias - 10);
+      // New photos may appear
+      if (State.day >= 3 && Math.random() < 0.2 + State.reality_distortion / 300) {
+        const mysteryPhoto = PhotoSystem.createPhoto('apartment_407', ['unexplained_figure'], false, ['unknown']);
+        mysteryPhoto.day = State.day - 1;
+        mysteryPhoto.time = '03:33';
+        changes.push('⚠ A new photograph appeared in your album. You don\'t remember taking it.');
+        VisualFX.chromaticAberration(document.getElementById('hud'));
       }
-    }
 
-    if (State.deletedEvidence >= 3 && State.day >= 5 && !State.hasFlag('evidence_gone')) {
-      changes.push('⚠ You realize you\'ve destroyed evidence you might need later.');
-      State.addFlag('evidence_gone');
-      State.photo_integrity = Math.max(0, State.photo_integrity - 15);
-    }
-
-    this.addNote(changes.join('\n'));
-    this.notify(changes[0]);
-
-    // Show consequence summary after a delay
-    setTimeout(() => {
-      changes.slice(1).forEach((c, i) => {
-        setTimeout(() => Game.notify(c), i * 3000);
+      // Trust decay/growth
+      Object.keys(State.trust).forEach(npc => {
+        // Trust with people you ignored slowly decays
+        if (State.trust[npc] > 50) State.trust[npc] = Math.max(40, State.trust[npc] - 2);
       });
-    }, 2000);
 
-    Audio_.playDrone(55);
-    this.updateHUD();
+      // Memory stability decreases over time
+      State.memory_stability = Math.max(10, State.memory_stability - 3);
+
+      // Reality distortion increases
+      if (State.photosWithRed > 0) {
+        State.reality_distortion = Math.min(100, State.reality_distortion + 2);
+      }
+
+      // Film replenish
+      State.film = Math.min(20, State.film + 3);
+
+      // Consequence check
+      if (State.liedCount > 0 && State.day >= 4 && !State.hasFlag('lies_caught')) {
+        if (Math.random() < 0.3 * State.liedCount) {
+          changes.push('⚠ Someone noticed you weren\'t telling the truth.');
+          State.addFlag('lies_caught');
+          State.trust.elias = Math.max(0, State.trust.elias - 10);
+          VisualFX.dangerPulse(document.getElementById('hud'));
+        }
+      }
+
+      if (State.deletedEvidence >= 3 && State.day >= 5 && !State.hasFlag('evidence_gone')) {
+        changes.push('⚠ You realize you\'ve destroyed evidence you might need later.');
+        State.addFlag('evidence_gone');
+        State.photo_integrity = Math.max(0, State.photo_integrity - 15);
+      }
+
+      this.addNote(changes.join('\n'));
+      this.notify(changes[0]);
+
+      // Show consequence summary after a delay
+      setTimeout(() => {
+        changes.slice(1).forEach((c, i) => {
+          setTimeout(() => Game.notify(c), i * 3000);
+        });
+      }, 2000);
+
+      Audio_.playDrone(55);
+      this.updateHUD();
+    }, 1200);
   },
 
   openCamera() {
@@ -3980,6 +4317,7 @@ const Game = {
     if (loc) {
       el.textContent = loc.name;
       el.classList.add('active');
+      VisualFX.slideIn(el);
       setTimeout(() => el.classList.remove('active'), 3000);
     }
   },
@@ -4044,6 +4382,7 @@ const Game = {
     el.style.animation = 'none';
     el.offsetHeight; // Force reflow
     el.style.animation = 'fadeInOut 2.5s forwards';
+    VisualFX.slideIn(el);
     setTimeout(() => { el.style.display = 'none'; }, 2500);
   },
 
