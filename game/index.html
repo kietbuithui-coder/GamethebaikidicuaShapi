@@ -785,8 +785,7 @@ const Audio_ = {
     this.currentAmbient = { stop: () => { g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 2); setTimeout(() => { try{osc.stop();osc2.stop();lfo.stop();}catch(e){} }, 2500); }};
   },
   playFootstep() {
-    this.playTone(60 + Math.random()*20, 0.1, 'sine', 0.15);
-    this.playNoise(0.05, 0.08);
+    Audio_.playFootstep();
   },
   playWhisper() {
     if (!this.ctx) this.init();
@@ -820,6 +819,219 @@ const Audio_ = {
     notes.forEach((n, i) => {
       setTimeout(() => this.playTone(n, 1.5, 'sine', 0.06), i * 400);
     });
+  },
+
+  // ==================== ADVANCED AUDIO ====================
+  playFootstep() {
+    if (!this.ctx) this.init();
+    const duration = 0.15;
+    const bufferSize = this.ctx.sampleRate * duration;
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (this.ctx.sampleRate * 0.03));
+    }
+    const src = this.ctx.createBufferSource();
+    src.buffer = buffer;
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 400;
+    const g = this.ctx.createGain();
+    g.gain.value = 0.2;
+    src.connect(filter);
+    filter.connect(g);
+    g.connect(this.sfxGain);
+    src.start();
+  },
+
+  playDoorCreak() {
+    if (!this.ctx) this.init();
+    const osc = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(150, this.ctx.currentTime);
+    osc.frequency.linearRampToValueAtTime(80, this.ctx.currentTime + 0.5);
+    g.gain.setValueAtTime(0.08, this.ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.5);
+    osc.connect(g);
+    g.connect(this.sfxGain);
+    osc.start();
+    osc.stop(this.ctx.currentTime + 0.5);
+  },
+
+  playHeartbeat() {
+    if (!this.ctx) this.init();
+    const playBeat = (time) => {
+      const osc = this.ctx.createOscillator();
+      const g = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = 50;
+      g.gain.setValueAtTime(0.3, time);
+      g.gain.exponentialRampToValueAtTime(0.001, time + 0.15);
+      osc.connect(g);
+      g.connect(this.sfxGain);
+      osc.start(time);
+      osc.stop(time + 0.15);
+    };
+    playBeat(this.ctx.currentTime);
+    playBeat(this.ctx.currentTime + 0.2);
+  },
+
+  playGlassBreak() {
+    if (!this.ctx) this.init();
+    const duration = 0.8;
+    const bufferSize = this.ctx.sampleRate * duration;
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      const t = i / this.ctx.sampleRate;
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-t * 5) * (1 + Math.sin(t * 2000));
+    }
+    const src = this.ctx.createBufferSource();
+    src.buffer = buffer;
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'highpass';
+    filter.frequency.value = 2000;
+    const g = this.ctx.createGain();
+    g.gain.value = 0.4;
+    src.connect(filter);
+    filter.connect(g);
+    g.connect(this.sfxGain);
+    src.start();
+  },
+
+  playWind() {
+    if (!this.ctx) this.init();
+    const duration = 3;
+    const bufferSize = this.ctx.sampleRate * duration;
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * 0.3;
+    }
+    const src = this.ctx.createBufferSource();
+    src.buffer = buffer;
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = 500;
+    filter.Q.value = 0.5;
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(0, this.ctx.currentTime);
+    g.gain.linearRampToValueAtTime(0.15, this.ctx.currentTime + 1);
+    g.gain.linearRampToValueAtTime(0, this.ctx.currentTime + duration);
+    src.connect(filter);
+    filter.connect(g);
+    g.connect(this.sfxGain);
+    src.start();
+  },
+
+  playClockTick() {
+    this.playTone(800, 0.05, 'square', 0.05);
+  },
+
+  playCameraZoom() {
+    if (!this.ctx) this.init();
+    const osc = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(400, this.ctx.currentTime);
+    osc.frequency.linearRampToValueAtTime(800, this.ctx.currentTime + 0.1);
+    g.gain.setValueAtTime(0.05, this.ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.1);
+    osc.connect(g);
+    g.connect(this.sfxGain);
+    osc.start();
+    osc.stop(this.ctx.currentTime + 0.1);
+  },
+
+  playReveal() {
+    const notes = [523, 659, 784]; // C5, E5, G5
+    notes.forEach((n, i) => {
+      setTimeout(() => this.playTone(n, 0.3, 'sine', 0.1), i * 100);
+    });
+  },
+
+  playDanger() {
+    const notes = [200, 180, 160, 140];
+    notes.forEach((n, i) => {
+      setTimeout(() => this.playTone(n, 0.4, 'sawtooth', 0.08), i * 150);
+    });
+  },
+
+  playMemoryFlash() {
+    if (!this.ctx) this.init();
+    const osc = this.ctx.createOscillator();
+    const osc2 = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = 440;
+    osc2.type = 'sine';
+    osc2.frequency.value = 445;
+    g.gain.setValueAtTime(0, this.ctx.currentTime);
+    g.gain.linearRampToValueAtTime(0.15, this.ctx.currentTime + 0.5);
+    g.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 2);
+    osc.connect(g);
+    osc2.connect(g);
+    g.connect(this.sfxGain);
+    osc.start();
+    osc2.start();
+    osc.stop(this.ctx.currentTime + 2);
+    osc2.stop(this.ctx.currentTime + 2);
+  },
+
+  playEndingMusic() {
+    if (!this.ctx) this.init();
+    // Simple ambient ending chord
+    const chord = [261, 329, 392, 523]; // C major
+    chord.forEach((freq, i) => {
+      const osc = this.ctx.createOscillator();
+      const g = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      g.gain.setValueAtTime(0, this.ctx.currentTime);
+      g.gain.linearRampToValueAtTime(0.08, this.ctx.currentTime + 2);
+      g.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 10);
+      osc.connect(g);
+      g.connect(this.ambientGain);
+      osc.start();
+      osc.stop(this.ctx.currentTime + 10);
+    });
+  },
+
+  playAmbientLoop(location) {
+    if (!this.ctx) this.init();
+    this.stopAmbientLoop();
+    
+    // Create location-specific ambient
+    switch(location) {
+      case 'apartment_407':
+        this._ambientInterval = setInterval(() => {
+          if (Math.random() < 0.3) this.playTone(55, 2, 'sine', 0.03);
+        }, 5000);
+        break;
+      case 'hospital':
+        this._ambientInterval = setInterval(() => {
+          if (Math.random() < 0.2) this.playTone(200 + Math.random() * 100, 0.5, 'sine', 0.02);
+        }, 4000);
+        break;
+      case 'subway':
+        this._ambientInterval = setInterval(() => {
+          if (Math.random() < 0.4) this.playNoise(1, 0.05);
+        }, 6000);
+        break;
+      case 'greenhouse':
+        this._ambientInterval = setInterval(() => {
+          if (Math.random() < 0.3) this.playTone(800 + Math.random() * 400, 0.3, 'sine', 0.02);
+        }, 3000);
+        break;
+    }
+  },
+
+  stopAmbientLoop() {
+    if (this._ambientInterval) {
+      clearInterval(this._ambientInterval);
+      this._ambientInterval = null;
+    }
   }
 };
 
@@ -2095,6 +2307,7 @@ const PhotoSystem = {
     const alteration = alterations[Math.floor(Math.random() * alterations.length)];
     photo.anomalies.push(alteration);
     State.photoChanges.push({ photoId: photo.id, alteration, viewCount: photo.viewCount });
+    Audio_.playMemoryFlash();
   },
 
   showPhotoDetail(photo) {
@@ -2333,6 +2546,7 @@ const PhotoSystem = {
     Game.addNote(`Photo analyzed (${photo.location}, Day ${photo.day}): ${findings.join(' ') || 'No significant findings.'}`);
     Game.notify('Analysis complete');
     Audio_.playUnsettling();
+    Audio_.playCameraZoom();
     this.showPhotoDetail(photo);
   },
 
@@ -2349,7 +2563,8 @@ const PhotoSystem = {
     this.photos = this.photos.filter(p => p.id !== photo.id);
     this.closeDetail();
     Game.notify('Photo destroyed');
-    Audio_.playTone(100, 0.5, 'sawtooth', 0.2);
+    Audio_.playGlassBreak();
+    Audio_.playDanger();
   },
 
   closeDetail() {
@@ -2500,6 +2715,7 @@ const Camera = {
     document.getElementById('camera-overlay').classList.add('active');
     document.getElementById('hud').classList.remove('active');
     Audio_.playElectricHum();
+    Audio_.playCameraZoom();
     this.updateViewfinder();
   },
 
@@ -3692,6 +3908,7 @@ const Events = {
         Game.notify('*knock knock knock*');
         VisualFX.screenShake(3, 500);
         VisualFX.flickerLight(document.getElementById('game-container'), 2000);
+        Audio_.playHeartbeat();
         setTimeout(() => {
           Game.transition('hallway');
           setTimeout(() => {
@@ -3728,10 +3945,12 @@ const Events = {
         if (!State.hasFlag('mirror_day2')) {
           State.addFlag('mirror_day2');
           Game.addNote('You checked the mirror this morning. Your reflection looks normal. But was it looking back at you a moment too long?');
+          Audio_.playClockTick();
           if (State.photos.length > 0) {
             Game.addNote('⚠ One of your photographs seems to have changed overnight. The lighting is different.');
             VisualFX.chromaticAberration(document.getElementById('game-container'), 800);
             VisualFX.flickerLight(document.getElementById('game-container'), 2000);
+            Audio_.playCameraZoom();
           }
         }
         break;
@@ -3772,6 +3991,7 @@ const Events = {
         break;
       case 'nightSounds':
         Audio_.playWhisper();
+        Audio_.playWind();
         Game.notify('Whispers from the walls...');
         Game.addNote('Heard whispers at night. No source identified.');
         VisualFX.nightmareMode(true);
@@ -3797,6 +4017,7 @@ const Events = {
           Game.addNote('⚠ RED. You photographed something that shouldn\'t exist. The color is... you can\'t name it. But you know it\'s wrong.');
           Game.notify('The color appears.');
           Audio_.playUnsettling();
+          Audio_.playDanger();
           State.reality_distortion += 15;
           VisualFX.horrorMoment();
           VisualFX.realityTear(true);
@@ -3899,6 +4120,7 @@ const Events = {
           Game.notify('The Archive reveals a hidden path...');
           VisualFX.breathingLight(document.getElementById('game-container'), 6000);
           VisualFX.chromaticAberration(document.getElementById('game-container'), 800);
+          Audio_.playReveal();
         }
         break;
       case 'childNear':
@@ -3950,6 +4172,7 @@ const Events = {
           State.memory_stability = Math.max(5, State.memory_stability - 8);
           Game.notify('A memory surfaces...');
           Audio_.playWhisper();
+          Audio_.playMemoryFlash();
           VisualFX.chromaticAberration(document.getElementById('game-container'), 1500);
           VisualFX.screenShake(3, 600);
         }
@@ -3981,6 +4204,7 @@ const Events = {
           Game.addNote('⚠ You woke up and the child was sitting on the edge of the bed. It didn\'t move when you sat up. It just watched. Then it was gone.');
           Game.notify('The child was in your room.');
           Audio_.playWhisper();
+          Audio_.playGlassBreak();
           State.memory_stability -= 15;
           VisualFX.horrorMoment();
           VisualFX.nightmareMode(true);
@@ -4292,7 +4516,7 @@ const PuzzleSystem = {
     
     // Notify
     Game.notify(`Puzzle completed: ${puzzle.name}`);
-    Audio_.playTone(600, 0.3, 'sine', 0.15);
+    Audio_.playReveal();
     
     // Check for more puzzles
     setTimeout(() => this.checkPuzzles(), 2000);
@@ -4683,6 +4907,9 @@ const EndingSystem = {
     VisualFX.strongVignette(true);
     VisualFX.nightmareMode(true);
 
+    // Play ending music
+    Audio_.playEndingMusic();
+
     // Play cutscene
     let delay = 0;
     ending.cutscene.forEach((scene, idx) => {
@@ -5018,6 +5245,9 @@ const Game = {
       // Update NPC positions at this location
       NPCAI.updateLocationNPCs();
       
+      // Play location-specific ambient
+      Audio_.playAmbientLoop(location);
+      
       // Visual effects based on location
       if (location === 'subway' || location === 'hospital') {
         VisualFX.scanlines(true);
@@ -5034,8 +5264,8 @@ const Game = {
   navigateTo(location) {
     if (!Locations[location]) return;
     State.advanceTime(5);
-    this.transition(location);
     Audio_.playFootstep();
+    this.transition(location);
   },
 
   handleSceneClick(e) {
@@ -5164,6 +5394,7 @@ const Game = {
         }
         break;
       case 'window':
+        Audio_.playWind();
         this.navigateTo('window_view');
         break;
       case 'mirror':
@@ -5184,6 +5415,7 @@ const Game = {
         break;
       case 'door':
         if (State.location === 'apartment_407') {
+          Audio_.playDoorCreak();
           this.navigateTo('hallway');
         }
         break;
