@@ -87,9 +87,10 @@ canvas#main-canvas{position:absolute;top:0;left:0;width:100%;height:100%;image-r
 @keyframes fadeInOut{0%{opacity:0}15%{opacity:1}85%{opacity:1}100%{opacity:0}}
 #transition-overlay{position:absolute;top:0;left:0;width:100%;height:100%;background:#000;z-index:80;opacity:0;pointer-events:none;transition:opacity 0.8s}
 #transition-overlay.active{opacity:1;pointer-events:auto}
-#ending-screen{background:#000;z-index:90;padding:20px;text-align:center}
+#ending-screen{background:#000;z-index:90;padding:20px;text-align:center;overflow-y:auto;max-height:100vh}
 #ending-screen h2{color:#7affb2;font-size:clamp(16px,4vw,24px);letter-spacing:3px;margin-bottom:20px}
-#ending-screen .ending-text{color:#a0b0a0;font-size:clamp(12px,3vw,15px);line-height:1.8;max-width:500px;margin:0 auto 30px}
+#ending-screen .ending-text{color:#a0b0a0;font-size:clamp(12px,3vw,15px);line-height:1.8;max-width:500px;margin:0 auto 30px;text-align:left}
+#ending-screen .ending-text br{margin-bottom:10px}
 .interact-hint{position:absolute;bottom:120px;left:50%;transform:translateX(-50%);color:#7affb280;font-size:11px;font-family:'Courier New',monospace;animation:hintPulse 2s ease-in-out infinite;display:none}
 .interact-hint.active{display:block}
 @keyframes hintPulse{0%,100%{opacity:0.4}50%{opacity:0.8}}
@@ -159,6 +160,7 @@ canvas#main-canvas{position:absolute;top:0;left:0;width:100%;height:100%;image-r
 <button class="menu-btn" onclick="Game.newGame()">NEW GAME</button>
 <button class="menu-btn" onclick="Game.loadGame()">CONTINUE</button>
 <button class="menu-btn" onclick="Game.showSaveSlots()">LOAD GAME</button>
+<button class="menu-btn" onclick="Game.showEndingGallery()">ENDING GALLERY</button>
 </div>
 <!-- HUD -->
 <div id="hud">
@@ -1424,39 +1426,10 @@ const Characters = {
         { speaker: 'The Original', text: "But if you destroy the camera... everyone here disappears. Elias. Mira. The child. All of them.", delay: 8000 },
         { speaker: 'The Original', text: "They're not real. Not the way you're real. But they feel real. Don't they?", delay: 11000 },
         { speaker: '', text: "What do you choose?", choices: [
-          { text: "Take the camera. Become the new Original. [ENDING: The Photographer]", next: 'ending_photographer' },
-          { text: "Destroy the camera. End Vesper. [ENDING: The Liberation]", next: 'ending_liberation' },
-          { text: "Refuse both. Find another way. [ENDING: The Third Path]", next: 'ending_third_path' }
+          { text: "Take the camera. Become the new Original. [ENDING: The Photographer]", effect: { ending_photographer_chosen: true } },
+          { text: "Destroy the camera. End Vesper. [ENDING: The Liberation]", effect: { ending_liberation_chosen: true } },
+          { text: "Refuse both. Find another way. [ENDING: The Third Path]", effect: { ending_third_path_chosen: true } }
         ]}
-      ],
-      ending_photographer: [
-        { speaker: '', text: "You take the camera. It feels right. It feels like coming home.", delay: 0 },
-        { speaker: '', text: "The Original smiles. Fades. Becomes part of the photograph.", delay: 2000 },
-        { speaker: '', text: "You are the Photographer now. Vesper lives because of you.", delay: 4000 },
-        { speaker: '', text: "Every seven days, a new version of you arrives. You guide them. You protect the city.", delay: 6500 },
-        { speaker: '', text: "The cycle continues. Forever.", delay: 9000 },
-        { speaker: '', text: "[ENDING ACHIEVED: THE PHOTOGRAPHER] [You maintain Vesper for eternity]", delay: 11000 }
-      ],
-      ending_liberation: [
-        { speaker: '', text: "You raise the camera. And smash it against the wall.", delay: 0 },
-        { speaker: '', text: "The Original screams. The room shakes.", delay: 1500 },
-        { speaker: '', text: "Vesper begins to fade. The green light dims. The buildings dissolve.", delay: 3000 },
-        { speaker: '', text: "Elias. Mira. The child. The Photo Dealer. All of them... gone.", delay: 5500 },
-        { speaker: '', text: "But free. Finally free.", delay: 8000 },
-        { speaker: '', text: "You wake up in a white room. No memories. No city. Just silence.", delay: 10500 },
-        { speaker: '', text: "[ENDING ACHIEVED: THE LIBERATION] [Vesper is destroyed. Everyone is free. But gone.]", delay: 13000 }
-      ],
-      ending_third_path: [
-        { speaker: '', text: "No.", delay: 0 },
-        { speaker: '', text: "There's another way. There has to be.", delay: 1500 },
-        { speaker: 'The Original', text: "What do you mean?", delay: 3000 },
-        { speaker: '', text: "Vesper doesn't have to be maintained. It doesn't have to be destroyed.", delay: 4500 },
-        { speaker: '', text: "It can be... freed. Made real. Not a photograph. Not a cycle. Just... a city.", delay: 7000 },
-        { speaker: '', text: "You take out your camera. But instead of photographing... you show Vesper its own photograph.", delay: 9500 },
-        { speaker: '', text: "The city sees itself. Really sees itself. For the first time.", delay: 12000 },
-        { speaker: '', text: "And it chooses to live. Not as a photograph. But as itself.", delay: 14500 },
-        { speaker: '', text: "The cycle ends. But Vesper remains. Real. Alive. Free.", delay: 17000 },
-        { speaker: '', text: "[ENDING ACHIEVED: THE THIRD PATH] [Vesper becomes real. The cycle is broken. Everyone lives.]", delay: 19500 }
       ]
     }
   },
@@ -3053,8 +3026,24 @@ const Narrative = {
     // Apply choice effects
     if (choice.effect) {
       Object.keys(choice.effect).forEach(k => {
-        if (k in State) State[k] += choice.effect[k];
+        if (k in State) {
+          if (typeof State[k] === 'number') State[k] += choice.effect[k];
+          else State[k] = choice.effect[k];
+        } else {
+          State.addFlag(k, choice.effect[k]);
+        }
       });
+    }
+
+    // Check for ending flags
+    if (choice.effect) {
+      if (choice.effect.ending_photographer_chosen) {
+        setTimeout(() => this.showEnding('ending_photographer'), 500);
+      } else if (choice.effect.ending_liberation_chosen) {
+        setTimeout(() => this.showEnding('ending_liberation'), 500);
+      } else if (choice.effect.ending_third_path_chosen) {
+        setTimeout(() => this.showEnding('ending_third_path'), 500);
+      }
     }
 
     // Parse choice text for trust/behavior indicators
@@ -3603,109 +3592,379 @@ const Events = {
     }
   },
 
-  checkEndingConditions() {
-    const state = State;
-
-    // Ending 1: The Perfect Photograph
-    if (state.totalPhotosTaken >= 15 && state.photosWithRed === 0 && state.photo_integrity > 80) {
-      return 'ending_perfect_photo';
-    }
-
-    // Ending 2: Everyone Remembers You
-    if (state.npcsMet.length >= 8 && state.truth_exposure > 60 && state.memory_stability < 40) {
-      return 'ending_everyone_remembers';
-    }
-
-    // Ending 3: The Last Red Image
-    if (state.photosWithRed >= 3 && state.hasFlag('red_analyzed') && state.reality_distortion > 50) {
-      return 'ending_last_red';
-    }
-
-    // Ending 4: Nothing Was Wrong
-    if (state.eventsTriggered.length <= 5 && state.totalPhotosTaken <= 3 && state.silentCount >= 3) {
-      return 'ending_nothing_wrong';
-    }
-
-    // Ending 5: The Witness
-    if (state.evidence_collected >= 10 && state.truth_exposure > 70) {
-      return 'ending_witness';
-    }
-
-    // Ending 6: The Eraser
-    if (state.deletedEvidence >= 5 && state.photosWithRed === 0 && state.reality_distortion < 20) {
-      return 'ending_eraser';
-    }
-
-    // Ending 7: The Believer
-    if (state.trust.elias > 70 && state.trust.mira > 60 && state.suspicion_city < 30) {
-      return 'ending_believer';
-    }
-
-    // Ending 8: The Impostor
-    if (state.liedCount >= 4 && state.hasFlag('dealer_met') && state.hasFlag('subway_explored')) {
-      return 'ending_impostor';
-    }
-
-    // Ending 9: The Colorless
-    if (state.hasFlag('red_unlocked') && state.reality_distortion > 70 && state.child_closeness >= 6) {
-      return 'ending_colorless';
-    }
-
-    // Ending 10: The Loop
-    if (state.daysSlept >= 6 && state.hasFlag('archive_explored')) {
-      return 'ending_loop';
-    }
-
-    // Default ending
-    return 'ending_default';
-  }
+  // Ending conditions are now handled by EndingSystem.checkEnding()
 };
 
-// ==================== ENDINGS ====================
-const Endings = {
-  ending_perfect_photo: {
-    title: 'ENDING 01 — THE PERFECT PHOTOGRAPH',
-    text: `You took the perfect photograph of Vesper.\n\nNo anomalies. No shadows. No strange colors.\nEveryone is smiling.\n\nThere is just one problem.\n\nYou no longer appear in any mirror.\n\nThe city has accepted you. You are part of Vesper now.\nA permanent resident. A fixed point.\n\nBut something that was once you is gone.\n\nYou are the photograph.\nAnd the photograph is perfect.`
+// ==================== ENDING SYSTEM ====================
+const EndingSystem = {
+  endings: {
+    ending_perfect_photo: {
+      id: 'ending_perfect_photo',
+      title: 'ENDING 01 — THE PERFECT PHOTOGRAPH',
+      condition: 'totalPhotosTaken >= 15 && photosWithRed === 0 && photo_integrity > 80',
+      unlocked: false,
+      cutscene: [
+        { type: 'text', text: 'You took the perfect photograph of Vesper.', delay: 0 },
+        { type: 'text', text: 'No anomalies. No shadows. No strange colors.', delay: 2000 },
+        { type: 'text', text: 'Everyone is smiling.', delay: 4000 },
+        { type: 'text', text: 'There is just one problem.', delay: 6000 },
+        { type: 'text', text: 'You no longer appear in any mirror.', delay: 8000 },
+        { type: 'text', text: 'The city has accepted you. You are part of Vesper now.', delay: 11000 },
+        { type: 'text', text: 'A permanent resident. A fixed point.', delay: 14000 },
+        { type: 'text', text: 'But something that was once you is gone.', delay: 16500 },
+        { type: 'text', text: 'You are the photograph.', delay: 19000 },
+        { type: 'text', text: 'And the photograph is perfect.', delay: 21000 }
+      ]
+    },
+    ending_everyone_remembers: {
+      id: 'ending_everyone_remembers',
+      title: 'ENDING 02 — EVERYONE REMEMBERS YOU',
+      condition: 'npcsMet.length >= 8 && truth_exposure > 60 && memory_stability < 40',
+      unlocked: false,
+      cutscene: [
+        { type: 'text', text: 'All the residents remember you now.', delay: 0 },
+        { type: 'text', text: 'They know your name. Your age. Your secrets.', delay: 2000 },
+        { type: 'text', text: 'They tell you memories you never lived.', delay: 4500 },
+        { type: 'text', text: '"You used to sit in the square every morning," Mira says.', delay: 7000 },
+        { type: 'text', text: '"Before you forgot," Elias adds.', delay: 10000 },
+        { type: 'text', text: 'You\'ve become part of the city\'s memory.', delay: 12500 },
+        { type: 'text', text: 'Your real memories dissolve.', delay: 15500 },
+        { type: 'text', text: 'You were never a visitor.', delay: 18000 },
+        { type: 'text', text: 'You were always here.', delay: 20000 },
+        { type: 'text', text: 'You just didn\'t know it yet.', delay: 22000 }
+      ]
+    },
+    ending_last_red: {
+      id: 'ending_last_red',
+      title: 'ENDING 03 — THE LAST RED IMAGE',
+      condition: 'photosWithRed >= 3 && hasFlag("red_analyzed") && reality_distortion > 50',
+      unlocked: false,
+      cutscene: [
+        { type: 'text', text: 'You found the source of the color red.', delay: 0 },
+        { type: 'text', text: 'The final photograph doesn\'t show the city.', delay: 2000 },
+        { type: 'text', text: 'It shows a room. Your room. The real one.', delay: 4500 },
+        { type: 'text', text: 'On the table: the camera.', delay: 7500 },
+        { type: 'text', text: 'Behind the camera: a person looking directly into the lens.', delay: 10000 },
+        { type: 'text', text: 'It\'s you.', delay: 13500 },
+        { type: 'text', text: 'You were never in Vesper.', delay: 16000 },
+        { type: 'text', text: 'Vesper was in the photograph.', delay: 18500 },
+        { type: 'text', text: 'And the photograph is developing.', delay: 21500 },
+        { type: 'text', text: 'Slowly.', delay: 24500 },
+        { type: 'text', text: 'Forever.', delay: 26500 }
+      ]
+    },
+    ending_nothing_wrong: {
+      id: 'ending_nothing_wrong',
+      title: 'ENDING 04 — NOTHING WAS WRONG',
+      condition: 'eventsTriggered.length <= 5 && totalPhotosTaken <= 3 && silentCount >= 3',
+      unlocked: false,
+      cutscene: [
+        { type: 'text', text: 'You decided not to investigate.', delay: 0 },
+        { type: 'text', text: 'No one disappeared. No monsters. No color.', delay: 2000 },
+        { type: 'text', text: 'Life returned to normal.', delay: 4500 },
+        { type: 'text', text: 'Years later, you find an old photograph in a drawer.', delay: 7000 },
+        { type: 'text', text: 'In it, every resident stands in front of apartment 407.', delay: 10500 },
+        { type: 'text', text: 'All facing away from the camera.', delay: 14500 },
+        { type: 'text', text: 'Except one.', delay: 17000 },
+        { type: 'text', text: 'That person is looking directly at you.', delay: 19000 },
+        { type: 'text', text: 'And smiling.', delay: 22500 }
+      ]
+    },
+    ending_witness: {
+      id: 'ending_witness',
+      title: 'ENDING 05 — THE WITNESS',
+      condition: 'evidence_collected >= 10 && truth_exposure > 70',
+      unlocked: false,
+      cutscene: [
+        { type: 'text', text: 'You documented everything.', delay: 0 },
+        { type: 'text', text: 'Every anomaly. Every impossible thing. Every lie.', delay: 2000 },
+        { type: 'text', text: 'The evidence is irrefutable.', delay: 5500 },
+        { type: 'text', text: 'Vesper is a construct. A photograph pretending to be a city.', delay: 8000 },
+        { type: 'text', text: 'But the city knows you know.', delay: 12500 },
+        { type: 'text', text: 'The photographs are watching you now.', delay: 15000 },
+        { type: 'text', text: 'Each one a window.', delay: 18500 },
+        { type: 'text', text: 'Each window an eye.', delay: 21000 },
+        { type: 'text', text: 'You are the Witness.', delay: 23500 },
+        { type: 'text', text: 'And the Witness cannot be allowed to leave.', delay: 26000 }
+      ]
+    },
+    ending_eraser: {
+      id: 'ending_eraser',
+      title: 'ENDING 06 — THE ERASER',
+      condition: 'deletedEvidence >= 5 && photosWithRed === 0 && reality_distortion < 20',
+      unlocked: false,
+      cutscene: [
+        { type: 'text', text: 'You destroyed every piece of evidence.', delay: 0 },
+        { type: 'text', text: 'Burned the photographs. Deleted the records.', delay: 2000 },
+        { type: 'text', text: 'Pretended nothing was wrong.', delay: 5000 },
+        { type: 'text', text: 'The city approves.', delay: 7500 },
+        { type: 'text', text: 'Vesper becomes peaceful. Normal.', delay: 10000 },
+        { type: 'text', text: 'The green light softens.', delay: 13000 },
+        { type: 'text', text: 'People smile genuinely.', delay: 15500 },
+        { type: 'text', text: 'But sometimes, late at night, you hear knocking.', delay: 18000 },
+        { type: 'text', text: 'Not at the door.', delay: 22000 },
+        { type: 'text', text: 'At the edge of your memory.', delay: 24000 },
+        { type: 'text', text: 'Something you destroyed is trying to come back.', delay: 27000 }
+      ]
+    },
+    ending_believer: {
+      id: 'ending_believer',
+      title: 'ENDING 07 — THE BELIEVER',
+      condition: 'trust.elias > 70 && trust.mira > 60 && suspicion_city < 30',
+      unlocked: false,
+      cutscene: [
+        { type: 'text', text: 'You trusted them.', delay: 0 },
+        { type: 'text', text: 'Elias protected you. Mira guided you.', delay: 2000 },
+        { type: 'text', text: 'The city accepted you as one of its own.', delay: 5000 },
+        { type: 'text', text: 'You never needed the camera.', delay: 8000 },
+        { type: 'text', text: 'You never needed the truth.', delay: 10500 },
+        { type: 'text', text: 'Sometimes, in photographs, you see things that aren\'t there.', delay: 13000 },
+        { type: 'text', text: 'But you\'ve learned not to look.', delay: 17500 },
+        { type: 'text', text: 'Belief is comfortable.', delay: 20500 },
+        { type: 'text', text: 'And Vesper is kind to those who don\'t question.', delay: 23000 }
+      ]
+    },
+    ending_impostor: {
+      id: 'ending_impostor',
+      title: 'ENDING 08 — THE IMPOSTOR',
+      condition: 'liedCount >= 4 && hasFlag("dealer_met") && hasFlag("subway_explored")',
+      unlocked: false,
+      cutscene: [
+        { type: 'text', text: 'You pretended to know nothing.', delay: 0 },
+        { type: 'text', text: 'You lied. You smiled. You played along.', delay: 2000 },
+        { type: 'text', text: 'And behind the mask, you gathered information.', delay: 5000 },
+        { type: 'text', text: 'The Photo Dealer showed you the truth:', delay: 8500 },
+        { type: 'text', text: 'You\'ve played this game before.', delay: 11500 },
+        { type: 'text', text: 'Many times.', delay: 14500 },
+        { type: 'text', text: 'Each time, you chose a different mask.', delay: 16500 },
+        { type: 'text', text: 'Each time, you got a little further.', delay: 20000 },
+        { type: 'text', text: 'This time, you might actually escape.', delay: 23000 },
+        { type: 'text', text: 'Or you might be lying to yourself too.', delay: 26500 }
+      ]
+    },
+    ending_colorless: {
+      id: 'ending_colorless',
+      title: 'ENDING 09 — THE COLORLESS',
+      condition: 'hasFlag("red_unlocked") && reality_distortion > 70 && child_closeness >= 6',
+      unlocked: false,
+      cutscene: [
+        { type: 'text', text: 'You found the color red.', delay: 0 },
+        { type: 'text', text: 'You broke the rules of Vesper.', delay: 2000 },
+        { type: 'text', text: 'The child led you to the edge of the city.', delay: 4500 },
+        { type: 'text', text: 'Beyond the barrier. Beyond the photographs.', delay: 8000 },
+        { type: 'text', text: 'There is nothing there.', delay: 12000 },
+        { type: 'text', text: 'No color. No light. No sound.', delay: 14500 },
+        { type: 'text', text: 'Just the absence of everything Vesper was built to hide.', delay: 17500 },
+        { type: 'text', text: 'You understand now.', delay: 22500 },
+        { type: 'text', text: 'Vesper wasn\'t a prison.', delay: 25000 },
+        { type: 'text', text: 'It was a mask.', delay: 28000 },
+        { type: 'text', text: 'And you\'ve taken it off.', delay: 30500 },
+        { type: 'text', text: 'What\'s left is something that should not exist.', delay: 33500 },
+        { type: 'text', text: 'Neither red nor any other color.', delay: 38000 },
+        { type: 'text', text: 'Just... the space between.', delay: 41000 }
+      ]
+    },
+    ending_loop: {
+      id: 'ending_loop',
+      title: 'ENDING 10 — THE LOOP',
+      condition: 'daysSlept >= 6 && hasFlag("archive_explored")',
+      unlocked: false,
+      cutscene: [
+        { type: 'text', text: 'The Archive contained the truth.', delay: 0 },
+        { type: 'text', text: 'You\'ve been here before.', delay: 2000 },
+        { type: 'text', text: 'Many times.', delay: 4500 },
+        { type: 'text', text: 'Each cycle, you forget.', delay: 6500 },
+        { type: 'text', text: 'Each cycle, you find the camera.', delay: 9000 },
+        { type: 'text', text: 'Each cycle, you ask the same questions.', delay: 12000 },
+        { type: 'text', text: 'The Old Woman was right.', delay: 16000 },
+        { type: 'text', text: 'You always arrive on a Tuesday.', delay: 18500 },
+        { type: 'text', text: 'But this time is different.', delay: 22000 },
+        { type: 'text', text: 'This time, you remember.', delay: 24500 },
+        { type: 'text', text: 'The question is:', delay: 27500 },
+        { type: 'text', text: 'Will you remember next time?', delay: 29500 },
+        { type: 'text', text: 'Or is remembering just another part of the loop?', delay: 32500 }
+      ]
+    },
+    ending_photographer: {
+      id: 'ending_photographer',
+      title: 'ENDING 11 — THE PHOTOGRAPHER',
+      condition: 'hasFlag("ending_photographer_chosen")',
+      unlocked: false,
+      cutscene: [
+        { type: 'text', text: 'You take the camera.', delay: 0 },
+        { type: 'text', text: 'It feels right.', delay: 2000 },
+        { type: 'text', text: 'It feels like coming home.', delay: 4000 },
+        { type: 'text', text: 'The Original smiles. Fades.', delay: 7000 },
+        { type: 'text', text: 'Becomes part of the photograph.', delay: 10000 },
+        { type: 'text', text: 'You are the Photographer now.', delay: 13500 },
+        { type: 'text', text: 'Vesper lives because of you.', delay: 16500 },
+        { type: 'text', text: 'Every seven days, a new version of you arrives.', delay: 19500 },
+        { type: 'text', text: 'You guide them.', delay: 23500 },
+        { type: 'text', text: 'You protect the city.', delay: 26000 },
+        { type: 'text', text: 'The cycle continues.', delay: 29000 },
+        { type: 'text', text: 'Forever.', delay: 32000 }
+      ]
+    },
+    ending_liberation: {
+      id: 'ending_liberation',
+      title: 'ENDING 12 — THE LIBERATION',
+      condition: 'hasFlag("ending_liberation_chosen")',
+      unlocked: false,
+      cutscene: [
+        { type: 'text', text: 'You raise the camera.', delay: 0 },
+        { type: 'text', text: 'And smash it against the wall.', delay: 2000 },
+        { type: 'text', text: 'The Original screams.', delay: 5000 },
+        { type: 'text', text: 'The room shakes.', delay: 7000 },
+        { type: 'text', text: 'Vesper begins to fade.', delay: 9000 },
+        { type: 'text', text: 'The green light dims.', delay: 11500 },
+        { type: 'text', text: 'The buildings dissolve.', delay: 14000 },
+        { type: 'text', text: 'Elias. Mira. The child.', delay: 17000 },
+        { type: 'text', text: 'The Photo Dealer.', delay: 20000 },
+        { type: 'text', text: 'All of them... gone.', delay: 22500 },
+        { type: 'text', text: 'But free.', delay: 26000 },
+        { type: 'text', text: 'Finally free.', delay: 28000 },
+        { type: 'text', text: 'You wake up in a white room.', delay: 31000 },
+        { type: 'text', text: 'No memories. No city. Just silence.', delay: 34000 }
+      ]
+    },
+    ending_third_path: {
+      id: 'ending_third_path',
+      title: 'ENDING 13 — THE THIRD PATH',
+      condition: 'hasFlag("ending_third_path_chosen")',
+      unlocked: false,
+      cutscene: [
+        { type: 'text', text: 'No.', delay: 0 },
+        { type: 'text', text: 'There\'s another way.', delay: 2000 },
+        { type: 'text', text: 'There has to be.', delay: 4500 },
+        { type: 'text', text: 'Vesper doesn\'t have to be maintained.', delay: 7000 },
+        { type: 'text', text: 'It doesn\'t have to be destroyed.', delay: 10500 },
+        { type: 'text', text: 'It can be... freed.', delay: 13500 },
+        { type: 'text', text: 'Made real.', delay: 16000 },
+        { type: 'text', text: 'Not a photograph. Not a cycle.', delay: 18000 },
+        { type: 'text', text: 'Just... a city.', delay: 21500 },
+        { type: 'text', text: 'You take out your camera.', delay: 24500 },
+        { type: 'text', text: 'But instead of photographing...', delay: 27500 },
+        { type: 'text', text: 'You show Vesper its own photograph.', delay: 30500 },
+        { type: 'text', text: 'The city sees itself.', delay: 34500 },
+        { type: 'text', text: 'Really sees itself.', delay: 37500 },
+        { type: 'text', text: 'For the first time.', delay: 40500 },
+        { type: 'text', text: 'And it chooses to live.', delay: 43000 },
+        { type: 'text', text: 'Not as a photograph.', delay: 46500 },
+        { type: 'text', text: 'But as itself.', delay: 49500 },
+        { type: 'text', text: 'The cycle ends.', delay: 52500 },
+        { type: 'text', text: 'But Vesper remains.', delay: 55000 },
+        { type: 'text', text: 'Real. Alive. Free.', delay: 58000 }
+      ]
+    }
   },
-  ending_everyone_remembers: {
-    title: 'ENDING 02 — EVERYONE REMEMBERS YOU',
-    text: `All the residents remember you now.\n\nThey know your name. Your age. Your secrets.\nThey tell you memories you never lived.\n\n"You used to sit in the square every morning," Mira says.\n"Before you forgot," Elias adds.\n\nYou've become part of the city's memory.\nYour real memories dissolve.\n\nYou were never a visitor.\nYou were always here.\nYou just didn't know it yet.`
+
+  checkEnding() {
+    const s = State;
+    const checks = {
+      'ending_perfect_photo': s.totalPhotosTaken >= 15 && s.photosWithRed === 0 && s.photo_integrity > 80,
+      'ending_everyone_remembers': s.npcsMet.length >= 8 && s.truth_exposure > 60 && s.memory_stability < 40,
+      'ending_last_red': s.photosWithRed >= 3 && s.hasFlag('red_analyzed') && s.reality_distortion > 50,
+      'ending_nothing_wrong': s.eventsTriggered.length <= 5 && s.totalPhotosTaken <= 3 && s.silentCount >= 3,
+      'ending_witness': s.evidence_collected >= 10 && s.truth_exposure > 70,
+      'ending_eraser': s.deletedEvidence >= 5 && s.photosWithRed === 0 && s.reality_distortion < 20,
+      'ending_believer': s.trust.elias > 70 && s.trust.mira > 60 && s.suspicion_city < 30,
+      'ending_impostor': s.liedCount >= 4 && s.hasFlag('dealer_met') && s.hasFlag('subway_explored'),
+      'ending_colorless': s.hasFlag('red_unlocked') && s.reality_distortion > 70 && s.child_closeness >= 6,
+      'ending_loop': s.daysSlept >= 6 && s.hasFlag('archive_explored'),
+      'ending_photographer': s.hasFlag('ending_photographer_chosen'),
+      'ending_liberation': s.hasFlag('ending_liberation_chosen'),
+      'ending_third_path': s.hasFlag('ending_third_path_chosen')
+    };
+
+    for (let [endingId, condition] of Object.entries(checks)) {
+      if (condition && !s.endingsUnlocked.includes(endingId)) {
+        s.endingsUnlocked.push(endingId);
+        this.endings[endingId].unlocked = true;
+        return endingId;
+      }
+    }
+    return null;
   },
-  ending_last_red: {
-    title: 'ENDING 03 — THE LAST RED IMAGE',
-    text: `You found the source of the color red.\n\nThe final photograph doesn't show the city.\nIt shows a room. Your room. The real one.\n\nOn the table: the camera.\nBehind the camera: a person looking directly into the lens.\n\nIt's you.\n\nYou were never in Vesper.\nVesper was in the photograph.\n\nAnd the photograph is developing.\nSlowly.\n\nForever.`
+
+  showEnding(endingId) {
+    const ending = this.endings[endingId];
+    if (!ending) return;
+
+    // Hide game UI
+    document.getElementById('hud').classList.remove('active');
+    document.getElementById('nav-bar').classList.remove('active');
+    document.getElementById('hotspot-panel').classList.remove('active');
+
+    // Show ending screen
+    const screen = document.getElementById('ending-screen');
+    const titleEl = document.getElementById('ending-title');
+    const textEl = document.getElementById('ending-text');
+
+    titleEl.textContent = ending.title;
+    textEl.innerHTML = '';
+
+    screen.classList.add('active');
+    VisualFX.strongVignette(true);
+    VisualFX.nightmareMode(true);
+
+    // Play cutscene
+    let delay = 0;
+    ending.cutscene.forEach((scene, idx) => {
+      setTimeout(() => {
+        textEl.innerHTML += scene.text + '<br><br>';
+        textEl.scrollTop = textEl.scrollHeight;
+        Audio_.playTone(200 + idx * 20, 0.5, 'sine', 0.05);
+      }, scene.delay);
+    });
+
+    // Add return button after cutscene
+    const lastDelay = ending.cutscene[ending.cutscene.length - 1].delay;
+    setTimeout(() => {
+      const returnBtn = document.createElement('button');
+      returnBtn.className = 'menu-btn';
+      returnBtn.textContent = 'RETURN TO TITLE';
+      returnBtn.onclick = () => Game.returnToTitle();
+      returnBtn.style.marginTop = '20px';
+      textEl.appendChild(returnBtn);
+
+      // Add to gallery
+      if (!State.endingsUnlocked.includes(endingId)) {
+        State.endingsUnlocked.push(endingId);
+      }
+    }, lastDelay + 3000);
   },
-  ending_nothing_wrong: {
-    title: 'ENDING 04 — NOTHING WAS WRONG',
-    text: `You decided not to investigate.\n\nNo one disappeared. No monsters. No color.\nLife returned to normal.\n\nYears later, you find an old photograph in a drawer.\n\nIn it, every resident stands in front of apartment 407.\nAll facing away from the camera.\n\nExcept one.\n\nThat person is looking directly at you.\n\nAnd smiling.`
-  },
-  ending_witness: {
-    title: 'ENDING 05 — THE WITNESS',
-    text: `You documented everything.\n\nEvery anomaly. Every impossible thing. Every lie.\n\nThe evidence is irrefutable.\nVesper is a construct. A photograph pretending to be a city.\n\nBut the city knows you know.\n\nThe photographs are watching you now.\nEach one a window.\nEach window an eye.\n\nYou are the Witness.\nAnd the Witness cannot be allowed to leave.`
-  },
-  ending_eraser: {
-    title: 'ENDING 06 — THE ERASER',
-    text: `You destroyed every piece of evidence.\n\nBurned the photographs. Deleted the records.\nPretended nothing was wrong.\n\nThe city approves.\n\nVesper becomes peaceful. Normal.\nThe green light softens.\nPeople smile genuinely.\n\nBut sometimes, late at night, you hear knocking.\nNot at the door.\n\nAt the edge of your memory.\n\nSomething you destroyed is trying to come back.`
-  },
-  ending_believer: {
-    title: 'ENDING 07 — THE BELIEVER',
-    text: `You trusted them.\n\nElias protected you. Mira guided you.\nThe city accepted you as one of its own.\n\nYou never needed the camera.\nYou never needed the truth.\n\nSometimes, in photographs, you see things that aren't there.\nBut you've learned not to look.\n\nBelief is comfortable.\nAnd Vesper is kind to those who don't question.`
-  },
-  ending_impostor: {
-    title: 'ENDING 08 — THE IMPOSTOR',
-    text: `You pretended to know nothing.\n\nYou lied. You smiled. You played along.\nAnd behind the mask, you gathered information.\n\nThe Photo Dealer showed you the truth:\nYou've played this game before.\nMany times.\n\nEach time, you chose a different mask.\nEach time, you got a little further.\n\nThis time, you might actually escape.\n\nOr you might be lying to yourself too.`
-  },
-  ending_colorless: {
-    title: 'ENDING 09 — THE COLORLESS',
-    text: `You found the color red.\nYou broke the rules of Vesper.\n\nThe child led you to the edge of the city.\nBeyond the barrier. Beyond the photographs.\n\nThere is nothing there.\n\nNo color. No light. No sound.\nJust the absence of everything Vesper was built to hide.\n\nYou understand now.\nVesper wasn't a prison.\nIt was a mask.\n\nAnd you've taken it off.\n\nWhat's left is something that should not exist.\nNeither red nor any other color.\nJust... the space between.`
-  },
-  ending_loop: {
-    title: 'ENDING 10 — THE LOOP',
-    text: `The Archive contained the truth.\n\nYou've been here before.\nMany times.\nEach cycle, you forget.\nEach cycle, you find the camera.\nEach cycle, you ask the same questions.\n\nThe Old Woman was right.\nYou always arrive on a Tuesday.\n\nBut this time is different.\nThis time, you remember.\n\nThe question is:\nWill you remember next time?\n\nOr is remembering just another part of the loop?`
-  },
-  ending_default: {
-    title: 'THE COLOR THAT SHOULD NOT EXIST',
-    text: `You lived in Vesper.\nYou photographed what you saw.\nYou spoke to those who lived there.\n\nSome truths you found. Some you missed.\nThe city kept most of its secrets.\n\nYou leave apartment 407.\nOr perhaps you never left.\n\nThe green light persists.\nThe camera waits.\n\nSomewhere, a child is watching.\nSomewhere, a color that shouldn't exist is waiting to be seen.\n\nThe photograph is not yet complete.`
+
+  showEndingGallery() {
+    const screen = document.getElementById('ending-screen');
+    const titleEl = document.getElementById('ending-title');
+    const textEl = document.getElementById('ending-text');
+
+    titleEl.textContent = '— ENDING GALLERY —';
+    textEl.innerHTML = '';
+
+    let html = '<div style="text-align:left;max-width:600px;margin:0 auto">';
+    Object.values(this.endings).forEach(ending => {
+      const unlocked = State.endingsUnlocked.includes(ending.id);
+      html += `<div style="padding:10px;margin:5px 0;border:1px solid ${unlocked ? '#7affb2' : '#3a3a3a'};border-radius:4px;opacity:${unlocked ? 1 : 0.4}">`;
+      html += `<div style="color:${unlocked ? '#7affb2' : '#5a5a5a'};font-size:14px;margin-bottom:5px">${ending.title}</div>`;
+      if (unlocked) {
+        html += `<div style="color:#a0a0a0;font-size:11px">✓ Unlocked</div>`;
+      } else {
+        html += `<div style="color:#5a5a5a;font-size:11px">🔒 Locked</div>`;
+      }
+      html += '</div>';
+    });
+    html += '</div>';
+
+    textEl.innerHTML = html;
+    screen.classList.add('active');
+
+    const returnBtn = document.createElement('button');
+    returnBtn.className = 'menu-btn';
+    returnBtn.textContent = 'RETURN TO TITLE';
+    returnBtn.onclick = () => Game.returnToTitle();
+    returnBtn.style.marginTop = '20px';
+    textEl.appendChild(returnBtn);
   }
 };
 
@@ -4388,9 +4647,8 @@ const Game = {
 
   checkEnding() {
     if (State.day >= 7 || State.hasFlag('ending_triggered')) {
-      const endingId = Events.checkEndingConditions();
+      const endingId = EndingSystem.checkEnding();
       if (endingId && !State.endingsUnlocked.includes(endingId)) {
-        State.endingsUnlocked.push(endingId);
         State.addFlag('ending_triggered');
         this.showEnding(endingId);
       }
@@ -4398,16 +4656,11 @@ const Game = {
   },
 
   showEnding(endingId) {
-    const ending = Endings[endingId];
-    if (!ending) return;
+    EndingSystem.showEnding(endingId);
+  },
 
-    document.getElementById('hud').classList.remove('active');
-    document.getElementById('ending-title').textContent = ending.title;
-    document.getElementById('ending-text').textContent = ending.text;
-    document.getElementById('ending-screen').classList.add('active');
-
-    Audio_.playDrone(30);
-    Audio_.playUnsettling();
+  showEndingGallery() {
+    EndingSystem.showEndingGallery();
   },
 
   returnToTitle() {
