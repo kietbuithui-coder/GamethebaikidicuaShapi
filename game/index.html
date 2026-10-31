@@ -700,6 +700,39 @@ const Characters = {
         { speaker: 'Elias', text: "Some doors in Vesper are closed for a reason. I'm trying to help you.", delay: 2000 },
         { speaker: 'Elias', text: "...Aren't I?", delay: 4000 }
       ],
+      elias_trust_high: [
+        { speaker: 'Elias', text: "You've been careful. I appreciate that.", delay: 0 },
+        { speaker: 'Elias', text: "There are things about this city that even I don't fully understand. But I know enough to keep you safe.", delay: 2500 },
+        { speaker: 'Elias', text: "The camera you have... it's not just a camera. It's a key.", delay: 5000 },
+        { speaker: '', text: "He pauses, looking at his own hands.", delay: 7000 },
+        { speaker: 'Elias', text: "I had one too. Once.", delay: 8500 },
+        { speaker: '', text: "He shows you his wrist. There's a faint scar in the shape of a lens ring.", delay: 10000 },
+        { speaker: '', text: "[SECRET REVEALED: Elias was a photographer] [Trust is HIGH — he's sharing his past]", delay: 12000 }
+      ],
+      elias_trust_low: [
+        { speaker: 'Elias', text: "You don't trust me. I can feel it.", delay: 0 },
+        { speaker: 'Elias', text: "That's... probably smart. In this city, trust gets people killed. Or worse.", delay: 2000 },
+        { speaker: 'Elias', text: "But you should know — I'm not your enemy. Even if I can't prove it.", delay: 4500 },
+        { speaker: '', text: "He steps back. His shadow stretches too far across the wall.", delay: 6500 },
+        { speaker: '', text: "[Elias is guarded] [Trust is LOW — he'll help but won't share secrets]", delay: 8000 }
+      ],
+      elias_about_red: [
+        { speaker: 'Elias', text: "Red.", delay: 0 },
+        { speaker: '', text: "He says the word quietly. Testing it. The hallway lights flicker.", delay: 1500 },
+        { speaker: 'Elias', text: "Red was the first color. Before green. Before Vesper. Before... everything.", delay: 3000 },
+        { speaker: 'Elias', text: "Someone decided it was too dangerous. Too real. So they removed it.", delay: 5500 },
+        { speaker: 'Elias', text: "But you can't truly erase a color. It leaks back. Through photographs. Through memories.", delay: 8000 },
+        { speaker: 'Elias', text: "Your camera can see it. That's why they're afraid of you.", delay: 10500 },
+        { speaker: '', text: "[LORE: The color red was deliberately removed from Vesper] [Elias knows more than he's saying]", delay: 12500 }
+      ],
+      elias_about_child: [
+        { speaker: 'Elias', text: "The child.", delay: 0 },
+        { speaker: '', text: "His expression changes. Something between pity and fear.", delay: 1500 },
+        { speaker: 'Elias', text: "She's not dangerous. Not exactly. She's... lost.", delay: 3000 },
+        { speaker: 'Elias', text: "She's looking for someone who forgot her. And every day she gets closer to remembering where that person is.", delay: 5500 },
+        { speaker: 'Elias', text: "If you photograph her too many times... she'll remember. And then she'll come for you.", delay: 8000 },
+        { speaker: '', text: "[WARNING: The child is searching for someone who forgot her] [Photographing her accelerates her approach]", delay: 10000 }
+      ],
       after_photo_him: [
         { speaker: 'Elias', text: "What did you see?", delay: 0 },
         { speaker: '', text: "He asks this without turning around. The photo shows something else entirely.", delay: 1500 },
@@ -776,6 +809,32 @@ const Characters = {
         { speaker: '', text: "She stares at her hands. When she looks up, her expression has changed.", delay: 2000 },
         { speaker: 'Mira', text: "You'll find her. She finds everyone, eventually.", delay: 4000 },
         { speaker: '', text: "[Mira's memory is unstable] [The child is connected to her]", delay: 6000 }
+      ],
+      mira_trust_high: [
+        { speaker: 'Mira', text: "You came back. Thank you.", delay: 0 },
+        { speaker: 'Mira', text: "I remembered something last night. Something important.", delay: 2000 },
+        { speaker: 'Mira', text: "My daughter... she didn't die. She was... taken. By the city.", delay: 4000 },
+        { speaker: 'Mira', text: "Vesper needs children. It feeds on them. Their memories. Their presence.", delay: 6500 },
+        { speaker: 'Mira', text: "That's why no one remembers them. The city erases them to sustain itself.", delay: 9000 },
+        { speaker: 'Mira', text: "The green light... it's powered by stolen childhoods.", delay: 11500 },
+        { speaker: '', text: "[LORE: Vesper consumes children's memories to exist] [Mira's daughter is the child in the hallway]", delay: 13500 }
+      ],
+      mira_about_photos: [
+        { speaker: 'Mira', text: "Show me the photographs.", delay: 0 },
+        { speaker: '', text: "You show her your album. She looks at each photo carefully.", delay: 1500 },
+        { speaker: 'Mira', text: "There. That one.", delay: 3000 },
+        { speaker: '', text: "She points to a photo of the square. In the background, barely visible, is a small figure.", delay: 4500 },
+        { speaker: 'Mira', text: "That's her. She was there. Watching. She's always watching.", delay: 6500 },
+        { speaker: 'Mira', text: "Can you... can you photograph her? Just once? I need to see her face clearly.", delay: 9000 },
+        { speaker: '', text: "[NEW OBJECTIVE: Photograph the child for Mira] [This may have consequences...]", delay: 11000 }
+      ],
+      mira_trust_low: [
+        { speaker: 'Mira', text: "You don't believe me.", delay: 0 },
+        { speaker: 'Mira', text: "I can see it in your eyes. You think I'm crazy. Or lying.", delay: 1500 },
+        { speaker: 'Mira', text: "That's fine. Everyone does. That's how the city keeps us quiet.", delay: 3500 },
+        { speaker: 'Mira', text: "But when the photographs start changing... when you see what I see... you'll understand.", delay: 5500 },
+        { speaker: 'Mira', text: "And by then, it might be too late.", delay: 8000 },
+        { speaker: '', text: "[Mira withdraws] [Trust is LOW — she'll share less information]", delay: 10000 }
       ]
     }
   },
@@ -815,6 +874,34 @@ const Characters = {
         { speaker: 'The Photo Dealer', text: "Last time you remembered, the city lost three people. They're in the photographs now.", delay: 3000 },
         { speaker: 'The Photo Dealer', text: "Standing in the background. Smiling. But they're not real anymore.", delay: 5500 },
         { speaker: '', text: "[WARNING: Remembering has consequences] [Previous cycles confirmed]", delay: 7500 }
+      ],
+      dealer_about_city: [
+        { speaker: 'The Photo Dealer', text: "Vesper is a photograph. A very old, very powerful photograph.", delay: 0 },
+        { speaker: 'The Photo Dealer', text: "Someone took a picture of a perfect city. And the city became real. But photographs fade.", delay: 3000 },
+        { speaker: 'The Photo Dealer', text: "So it needs to be... refreshed. Renewed. That's what the children are for.", delay: 5500 },
+        { speaker: 'The Photo Dealer', text: "Fresh memories. Young minds. The city consumes them to stay vivid.", delay: 8000 },
+        { speaker: 'The Photo Dealer', text: "You're not the first photographer here. But you might be the last.", delay: 10500 },
+        { speaker: '', text: "[LORE: Vesper is a living photograph that consumes memories] [The Photographer's role is critical]", delay: 12500 }
+      ],
+      dealer_trust_high: [
+        { speaker: 'The Photo Dealer', text: "You've earned my trust. That's rare here.", delay: 0 },
+        { speaker: '', text: "He reaches under the counter and pulls out a leather-bound album.", delay: 1500 },
+        { speaker: 'The Photo Dealer', text: "This is yours. From the last cycle.", delay: 3000 },
+        { speaker: '', text: "The album is filled with photographs. All taken by you. All showing the same thing:", delay: 4500 },
+        { speaker: '', text: "A door. The same door. In different locations. Different times.", delay: 6500 },
+        { speaker: 'The Photo Dealer', text: "You've been trying to find it. The door to the original photograph.", delay: 8500 },
+        { speaker: 'The Photo Dealer', text: "Maybe this time you will.", delay: 10500 },
+        { speaker: '', text: "[KEY ITEM: Previous cycle's photo album] [The door appears in multiple locations] [Trust HIGH]", delay: 12500 }
+      ],
+      dealer_about_red: [
+        { speaker: 'The Photo Dealer', text: "Ah, red.", delay: 0 },
+        { speaker: '', text: "His eyes light up with something between excitement and terror.", delay: 1500 },
+        { speaker: 'The Photo Dealer', text: "Red is the original color. The first photograph was taken in red light.", delay: 3000 },
+        { speaker: 'The Photo Dealer', text: "But red is dangerous. It reveals too much. Shows the cracks in the photograph.", delay: 5500 },
+        { speaker: 'The Photo Dealer', text: "So they filtered it out. Made everything green. Safe. Controlled.", delay: 8000 },
+        { speaker: 'The Photo Dealer', text: "But red leaks through. In old photographs. In memories. In you.", delay: 10500 },
+        { speaker: 'The Photo Dealer', text: "Your camera was made to see red. That's why it's so valuable. And so dangerous.", delay: 12500 },
+        { speaker: '', text: "[LORE: Red reveals the truth about Vesper being a photograph] [Your camera is special]", delay: 14500 }
       ]
     }
   },
@@ -944,6 +1031,22 @@ const Characters = {
         { speaker: 'Receptionist', text: "I think I've always been here. I think I'll always be here.", delay: 2000 },
         { speaker: '', text: "For a moment, her image flickers. Like a photograph being developed.", delay: 4000 },
         { speaker: '', text: "[Phenomenon: The Unphotographable — the Receptionist may not be real]", delay: 6000 }
+      ],
+      rec_about_room9: [
+        { speaker: 'Receptionist', text: "Room 9.", delay: 0 },
+        { speaker: '', text: "Her expression doesn't change, but something in her eyes shifts.", delay: 1500 },
+        { speaker: 'Receptionist', text: "Room 9 is where the photographer stayed. The one who took the original picture.", delay: 3000 },
+        { speaker: 'Receptionist', text: "He never checked out. He's still there. In the photograph. In the room. In the city.", delay: 5500 },
+        { speaker: 'Receptionist', text: "Sometimes I can hear him. Developing film. Taking pictures. Still working.", delay: 8000 },
+        { speaker: '', text: "[LORE: The original photographer is trapped in Room 9] [He may still be active]", delay: 10000 }
+      ],
+      rec_trust_high: [
+        { speaker: 'Receptionist', text: "You're different from the others.", delay: 0 },
+        { speaker: 'Receptionist', text: "You actually look at me. Most people... they look through me. Like I'm not really here.", delay: 2000 },
+        { speaker: 'Receptionist', text: "Maybe I'm not. Maybe I'm just part of the hotel. Part of the photograph.", delay: 4500 },
+        { speaker: '', text: "She touches her face. Her fingers leave no mark.", delay: 6500 },
+        { speaker: 'Receptionist', text: "But you see me. That means something. Maybe you can help me remember who I was.", delay: 9000 },
+        { speaker: '', text: "[Receptionist reveals vulnerability] [She may have been human once] [Trust HIGH]", delay: 11000 }
       ]
     }
   },
@@ -2654,20 +2757,25 @@ const Events = {
       { id: 'hospital_access', time: 'any', trigger: 'location', location: 'hospital', action: 'hospitalEvent' },
       { id: 'red_first', time: 'any', trigger: 'photo', action: 'firstRedPhoto' },
       { id: 'mira_child_link', time: 'any', trigger: 'flag', flag: 'mira_met', location: 'square', action: 'miraChildLink' },
-      { id: 'consequence_check', time: '07:00', trigger: 'auto', action: 'consequenceCheck' }
+      { id: 'consequence_check', time: '07:00', trigger: 'auto', action: 'consequenceCheck' },
+      { id: 'elias_warning', time: '20:00', trigger: 'night', action: 'eliasWarning' }
     ],
     5: [
       { id: 'people_missing', time: '07:00', trigger: 'auto', action: 'peopleMissing' },
       { id: 'subway_access', time: 'any', trigger: 'location', location: 'subway', action: 'subwayEvent' },
       { id: 'hotel_anomaly', time: 'any', trigger: 'location', location: 'hotel', action: 'hotelEvent' },
-      { id: 'memory_fragment_1', time: '03:00', trigger: 'night', action: 'memory_fragment' }
+      { id: 'memory_fragment_1', time: '03:00', trigger: 'night', action: 'memory_fragment' },
+      { id: 'mira_urgent', time: '14:00', trigger: 'flag', flag: 'mira_met', location: 'square', action: 'miraUrgent' },
+      { id: 'elias_secret_meeting', time: '22:00', trigger: 'flag', flag: 'consequence_elias_ally', location: 'subway', action: 'eliasSecretMeeting' }
     ],
     6: [
       { id: 'sealed_district', time: 'any', trigger: 'location', location: 'sealed_district', action: 'sealedEvent' },
       { id: 'archive_found', time: 'any', trigger: 'flag', flag: 'subway_explored', location: 'archive_room', action: 'archiveEvent' },
       { id: 'child_near', time: '21:00', trigger: 'night', action: 'childNear' },
       { id: 'greenhouse_event', time: 'any', trigger: 'location', location: 'greenhouse', action: 'greenhouseEvent' },
-      { id: 'school_event', time: 'any', trigger: 'location', location: 'school', action: 'schoolEvent' }
+      { id: 'school_event', time: 'any', trigger: 'location', location: 'school', action: 'schoolEvent' },
+      { id: 'red_spreading', time: '07:00', trigger: 'flag', flag: 'red_unlocked', action: 'redSpreading' },
+      { id: 'final_warning', time: '20:00', trigger: 'auto', action: 'finalWarning' }
     ],
     7: [
       { id: 'final_day', time: '06:00', trigger: 'auto', action: 'finalDay' },
@@ -2828,6 +2936,15 @@ const Events = {
           State.flags['subway_secret_available'] = true;
         }
         break;
+      case 'eliasWarning':
+        if (State.day >= 4) {
+          if (State.trust.elias > 50) {
+            Game.startDialogueWithText('Elias', '"Listen to me carefully. Tomorrow night, something will happen. The city will try to... reset. Don\'t let it. Stay awake. Document everything. It\'s the only way to break the cycle."\n\n[WARNING: Day 5 will bring a critical event] [Elias is helping you]');
+          } else {
+            Game.startDialogueWithText('Elias', '"You should be careful. The city knows you\'re investigating. It doesn\'t like people who ask too many questions."\n\n[WARNING: Your investigation hasn\'t gone unnoticed]');
+          }
+        }
+        break;
       case 'peopleMissing':
         State.peopleDisappeared += 1;
         Game.addNote('⚠ Someone is missing from the streets. No one seems to notice except you.');
@@ -2920,6 +3037,22 @@ const Events = {
           State.memory_stability -= 15;
         }
         break;
+      case 'miraUrgent':
+        if (!State.hasFlag('mira_urgent')) {
+          State.addFlag('mira_urgent');
+          Game.startDialogueWithText('Mira', '"She\'s here. My daughter. She\'s in the hallway right now. Please... please photograph her. I need to see her face one more time. I need to remember what I\'ve forgotten."\n\n[Mira is desperate] [She needs you to photograph the child]');
+          Game.addNote('⚠ Mira urgently wants you to photograph the child. She says it\'s the only way to remember.');
+        }
+        break;
+      case 'eliasSecretMeeting':
+        if (!State.hasFlag('elias_secret_meeting')) {
+          State.addFlag('elias_secret_meeting');
+          Game.transition('subway');
+          setTimeout(() => {
+            Game.startDialogueWithText('Elias', '"You came. Good."\n\nHe leads you deeper into the subway tunnels. The tracks are dry, but you can feel vibrations. Something is coming.\n\n"There\'s a train. It comes every night at 3 AM. It goes to the place where the original photograph was taken. The real Vesper."\n\n"I can get us on. But once we go, we can\'t come back. Not as the same people."\n\n[CRITICAL CHOICE APPROACHING: The night train to the original Vesper] [Day 6 decision point]', 0);
+          }, 2000);
+        }
+        break;
       case 'eliasFinal':
         if (State.hasFlag('elias_met') || State.npcsMet.includes('elias')) {
           let dialogueKey = 'suspicious';
@@ -2929,6 +3062,53 @@ const Events = {
             Game.addNote('⚠ Elias says: "You still haven\'t remembered, have you?" What does he mean?');
             State.flags['elias_final_hint'] = true;
           }
+        }
+        break;
+      case 'redSpreading':
+        if (!State.hasFlag('red_spreading_noted')) {
+          State.addFlag('red_spreading_noted');
+          State.reality_distortion += 10;
+          Game.addNote('⚠ The red is spreading. You can see it now — faint crimson veins in the walls, a reddish tint to the green light. The color that should not exist is returning.');
+          Game.notify('The color red is spreading through Vesper.');
+          Audio_.playUnsettling();
+          // Check if red is visible everywhere
+          if (State.reality_distortion > 60) {
+            State.redVisible = true;
+            Game.addNote('⚠ You can now see red with your naked eyes. The filter is failing.');
+          }
+        }
+        break;
+      case 'finalWarning':
+        if (!State.hasFlag('final_warning_given')) {
+          State.addFlag('final_warning_given');
+          Game.addNote('⚠ Something is happening tonight. The city feels different. The air is heavy. Tomorrow is Day 7 — the last day. Everything comes to a head.');
+          Game.notify('Tomorrow is the last day. Everything ends.');
+          Audio_.playDrone(30);
+          // Trigger special night atmosphere
+          State.flags['final_night'] = true;
+        }
+        break;
+      case 'nightTrain':
+        if (!State.hasFlag('night_train_taken')) {
+          State.addFlag('night_train_taken');
+          Game.transition('subway');
+          setTimeout(() => {
+            Game.startDialogueWithText('', 'The train arrives. It\'s old. Black. The windows are dark.\n\nElias leads you aboard. The interior is empty except for two seats.\n\nThe train moves. Not on tracks — through darkness. Through the spaces between photographs.\n\nAfter an eternity, it stops.\n\nThe doors open to... Vesper. But different. Real. In full color.\n\nIncluding red.', 0);
+            State.addFlag('real_vesper_reached');
+          }, 3000);
+        }
+        break;
+      case 'childConfrontation':
+        if (State.child_closeness >= 6 && !State.hasFlag('child_confronted')) {
+          State.addFlag('child_confronted');
+          Game.startDialogueWithText('The Child', '...\n\nShe stands in front of you. Close. Too close.\n\nShe looks up. Her face...\n\nIt\'s your face. From years ago. When you were a child.\n\n"I remember you," she says. "You promised to come back."\n\n[TRUTH: The child is your younger self] [You forgot your own childhood] [Memory Stability critical]', 0);
+          State.memory_stability -= 20;
+        }
+        break;
+      case 'photoDealerFinal':
+        if (State.hasFlag('dealer_met') && !State.hasFlag('dealer_final')) {
+          State.addFlag('dealer_final');
+          Game.startDialogueWithText('The Photo Dealer', '"This is it. The last day. You have two choices."\n\n"Give me the camera. I can end this. Vesper will fade. Everyone will be free. But you\'ll forget everything."\n\n"Or keep it. Walk through the door I\'ll show you. Become the new photographer. Maintain Vesper forever."\n\n[FINAL CHOICE: End Vesper or become its guardian]', 0);
         }
         break;
     }
