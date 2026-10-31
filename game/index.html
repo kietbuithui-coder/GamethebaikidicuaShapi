@@ -29,10 +29,14 @@ canvas#main-canvas{position:absolute;top:0;left:0;width:100%;height:100%;image-r
 .hud-btn{background:#0a0f0a99;border:1px solid #2a3a2a;color:#7affb2;padding:6px 10px;font-family:'Courier New',monospace;font-size:11px;cursor:pointer;border-radius:3px;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
 .hud-btn:active{background:#7affb230}
 .hud-info{color:#5a8a6a;font-size:10px;font-family:'Courier New',monospace;text-shadow:0 0 4px #000}
-#dialogue-box{position:absolute;bottom:0;left:0;width:100%;background:linear-gradient(0deg,#0a0a0af0 0%,#0a0a0ae0 80%,transparent 100%);padding:16px;padding-bottom:max(16px,env(safe-area-inset-bottom));display:none;z-index:30}
-#dialogue-box.active{display:block}
-#speaker-name{color:#7affb2;font-size:clamp(11px,2.8vw,14px);margin-bottom:6px;letter-spacing:1px}
-#dialogue-text{color:#c0d0c0;font-size:clamp(12px,3vw,15px);line-height:1.6;min-height:48px;margin-bottom:10px}
+#dialogue-box{position:absolute;bottom:0;left:0;width:100%;background:linear-gradient(0deg,#0a0a0af5 0%,#0a0a0ae8 90%,transparent 100%);padding:12px 16px;padding-bottom:max(12px,env(safe-area-inset-bottom));display:none;z-index:30;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+#dialogue-box.active{display:flex;flex-direction:row;align-items:flex-end;gap:12px;max-height:45vh}
+#dialogue-box .dialogue-content{flex:1;min-width:0;display:flex;flex-direction:column}
+#speaker-name{color:#7affb2;font-size:clamp(11px,2.8vw,14px);margin-bottom:6px;letter-spacing:1px;display:flex;align-items:center;gap:10px}
+#speaker-portrait{width:60px;height:60px;border-radius:4px;overflow:hidden;border:1px solid #3a5a4a;flex-shrink:0;display:none}
+#speaker-portrait canvas{width:100%;height:100%}
+#speaker-portrait.visible{display:block}
+#dialogue-text{color:#c0d0c0;font-size:clamp(12px,3vw,15px);line-height:1.6;min-height:48px;margin-bottom:10px;flex:1}
 #dialogue-choices{display:flex;flex-direction:column;gap:6px}
 .choice-btn{background:#1a1a2e80;border:1px solid #2a4a3a;color:#a0c0a0;padding:10px 14px;font-family:'Courier New',monospace;font-size:clamp(11px,2.8vw,13px);cursor:pointer;text-align:left;line-height:1.4;border-radius:3px;transition:all 0.2s}
 .choice-btn:active{background:#7affb220;border-color:#7affb2}
@@ -133,9 +137,12 @@ canvas#main-canvas{position:absolute;top:0;left:0;width:100%;height:100%;image-r
 <div id="hotspot-panel"></div>
 <!-- DIALOGUE BOX -->
 <div id="dialogue-box">
+<div id="speaker-portrait"></div>
+<div class="dialogue-content">
 <div id="speaker-name"></div>
 <div id="dialogue-text"></div>
 <div id="dialogue-choices"></div>
+</div>
 </div>
 <!-- CAMERA OVERLAY -->
 <div id="camera-overlay">
@@ -200,7 +207,61 @@ canvas#main-canvas{position:absolute;top:0;left:0;width:100%;height:100%;image-r
 </div>
 <script>
 "use strict";
-// ==================== AUDIO MANAGER ====================
+// ==================== ASSET MANAGER ====================
+const Assets = {
+  backgrounds: {},
+  portraits: {},
+  loaded: false,
+  onReady: null,
+
+  loadAll(callback) {
+    this.onReady = callback;
+    const bgFiles = {
+      'apartment_407': 'bg_apartment.jpg',
+      'hallway': 'bg_hallway.jpg',
+      'street': 'bg_street.jpg',
+      'photo_shop': 'bg_photoshop.jpg',
+      'hospital': 'bg_hospital.jpg',
+      'square': 'bg_square.jpg',
+      'subway': 'bg_subway.jpg',
+      'greenhouse': 'bg_greenhouse.jpg'
+    };
+
+    const portraitFiles = {
+      'elias': 'char_elias.jpg',
+      'mira': 'char_mira.jpg',
+      'photo_dealer': 'char_dealer.jpg',
+      'old_woman': 'char_oldwoman.jpg'
+    };
+
+    let total = Object.keys(bgFiles).length + Object.keys(portraitFiles).length;
+    let loaded = 0;
+
+    const onImg = (img, key, isBg) => {
+      img.onload = img.onerror = () => {
+        loaded++;
+        if (isBg) this.backgrounds[key] = img;
+        else this.portraits[key] = img;
+        if (loaded >= total) {
+          this.loaded = true;
+          if (this.onReady) this.onReady();
+        }
+      };
+    };
+
+    Object.entries(bgFiles).forEach(([key, file]) => {
+      const img = new Image();
+      img.src = 'assets/' + file;
+      onImg(img, key, true);
+    });
+
+    Object.entries(portraitFiles).forEach(([key, file]) => {
+      const img = new Image();
+      img.src = 'assets/' + file;
+      onImg(img, key, false);
+    });
+  }
+};
 const Audio_ = {
   ctx: null,
   masterGain: null,
@@ -1434,14 +1495,36 @@ const Renderer = {
   },
 
   drawBackground(ctx, w, h, loc, throughCamera = false) {
-    // Base color
-    const baseColor = loc.color || '#0a0a0a';
-    ctx.fillStyle = baseColor;
-    ctx.fillRect(0, 0, w, h);
+    // Draw background image if available
+    const locId = Object.keys(Locations).find(k => Locations[k] === loc) || '';
+    const bgImg = Assets.backgrounds[locId];
 
-    // Time-based lighting
+    if (bgImg) {
+      // Cover-fit the image
+      const imgRatio = bgImg.width / bgImg.height;
+      const screenRatio = w / h;
+      let sx, sy, sw, sh;
+      if (imgRatio > screenRatio) {
+        sh = bgImg.height;
+        sw = bgImg.height * screenRatio;
+        sx = (bgImg.width - sw) / 2;
+        sy = 0;
+      } else {
+        sw = bgImg.width;
+        sh = bgImg.width / screenRatio;
+        sx = 0;
+        sy = (bgImg.height - sh) / 2;
+      }
+      ctx.drawImage(bgImg, sx, sy, sw, sh, 0, 0, w, h);
+    } else {
+      // Fallback to procedural background
+      const baseColor = loc.color || '#0a0a0a';
+      ctx.fillStyle = baseColor;
+      ctx.fillRect(0, 0, w, h);
+    }
+
+    // Time-based lighting overlay
     const isNight = State.isNight();
-    const timeProgress = (State.hour + State.minute / 60) / 24;
 
     // Sickly green ambient
     const greenIntensity = isNight ? 0.15 : 0.25;
@@ -1460,17 +1543,9 @@ const Renderer = {
       ctx.fillRect(0, 0, w, h);
     }
 
-    // Walls/floor perspective
-    ctx.fillStyle = isNight ? '#050a05' : '#0f1a10';
+    // Floor overlay for depth
+    ctx.fillStyle = isNight ? 'rgba(5, 10, 5, 0.6)' : 'rgba(15, 26, 16, 0.4)';
     ctx.fillRect(0, h * 0.65, w, h * 0.35);
-
-    // Floor line
-    ctx.strokeStyle = '#1a2a1a';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(0, h * 0.65);
-    ctx.lineTo(w, h * 0.65);
-    ctx.stroke();
   },
 
   drawLocationElements(ctx, w, h, loc, throughCamera = false) {
@@ -2097,12 +2172,32 @@ const Narrative = {
 
     const line = lines[this.currentLineIndex];
     const nameEl = document.getElementById('speaker-name');
+    const portraitEl = document.getElementById('speaker-portrait');
     const textEl = document.getElementById('dialogue-text');
     const choicesEl = document.getElementById('dialogue-choices');
 
     nameEl.textContent = line.speaker || '';
     textEl.textContent = '';
     choicesEl.innerHTML = '';
+
+    // Show character portrait if available
+    if (line.speaker) {
+      const charId = this.currentDialogueId ? this.currentDialogueId.split(':')[0] : null;
+      if (charId && Assets.portraits[charId]) {
+        portraitEl.innerHTML = '<canvas width="120" height="120"></canvas>';
+        const pCanvas = portraitEl.querySelector('canvas');
+        const pCtx = pCanvas.getContext('2d');
+        const img = Assets.portraits[charId];
+        pCtx.drawImage(img, 0, 0, 120, 120);
+        portraitEl.classList.add('visible');
+        nameEl.style.flexDirection = 'row';
+      } else {
+        portraitEl.classList.remove('visible');
+        nameEl.style.flexDirection = 'column';
+      }
+    } else {
+      portraitEl.classList.remove('visible');
+    }
 
     document.getElementById('dialogue-box').classList.add('active');
 
@@ -2205,6 +2300,7 @@ const Narrative = {
   closeDialogue() {
     document.getElementById('dialogue-box').classList.remove('active');
     document.getElementById('speaker-name').textContent = '';
+    document.getElementById('speaker-portrait').classList.remove('visible');
     document.getElementById('dialogue-text').textContent = '';
     document.getElementById('dialogue-choices').innerHTML = '';
     this.currentDialogueId = null;
@@ -2565,6 +2661,9 @@ const Game = {
     Renderer.init();
     this.updateHUD();
 
+    // Show loading indicator
+    this.notify('Loading assets...');
+
     // Touch/click handling for scene interaction
     const canvas = document.getElementById('main-canvas');
     canvas.addEventListener('click', (e) => this.handleSceneClick(e));
@@ -2577,6 +2676,11 @@ const Game = {
     // Resume audio on interaction
     document.addEventListener('click', () => Audio_.resume(), { once: true });
     document.addEventListener('touchstart', () => Audio_.resume(), { once: true });
+
+    // Load assets in background
+    Assets.loadAll(() => {
+      this.notify('Assets loaded ✓');
+    });
   },
 
   newGame() {
