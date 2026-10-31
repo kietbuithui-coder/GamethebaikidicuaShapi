@@ -183,6 +183,7 @@ canvas#main-canvas{position:absolute;top:0;left:0;width:100%;height:100%;image-r
 <button class="hud-btn" onclick="Game.openAlbum()">🖼</button>
 <button class="hud-btn" onclick="Game.openNotebook()">📓</button>
 <button class="hud-btn" onclick="Game.openHintMenu()">💡</button>
+<button class="hud-btn" onclick="NPCAI.showNPCSchedule()">🗺</button>
 </div>
 <div class="hud-right">
 <span class="hud-info" id="hud-day">DAY 1</span>
@@ -1680,7 +1681,257 @@ const Characters = {
   }
 };
 
-// ==================== HORROR PHENOMENA ====================
+// ==================== NPC AI & SCHEDULES ====================
+const NPCAI = {
+  tickTimer: null,
+  currentTick: 0,
+  TICK_INTERVAL: 30000, // 30 seconds per game tick
+  npcPositions: {},
+  npcMoods: {},
+  npcRelationships: {},
+
+  init() {
+    // Initialize NPC positions based on schedules
+    this.initializeSchedules();
+    this.startTickLoop();
+  },
+
+  initializeSchedules() {
+    // Default NPC positions
+    this.npcPositions = {
+      elias: { location: 'hallway', timeRange: [6, 22], mood: 'friendly' },
+      mira: { location: 'square', timeRange: [8, 18], mood: 'sad' },
+      photo_dealer: { location: 'photo_shop', timeRange: [7, 23], mood: 'neutral' },
+      old_woman: { location: 'ground_floor', timeRange: [0, 24], mood: 'wise' },
+      child_distant: { location: 'street', timeRange: [0, 24], mood: 'watching' },
+      receptionist: { location: 'hotel', timeRange: [0, 24], mood: 'blank' },
+      shadow_man: { location: 'subway', timeRange: [20, 6], mood: 'cautious' },
+      nurse_shadow: { location: 'hospital', timeRange: [0, 24], mood: 'silent' },
+      gardener: { location: 'greenhouse', timeRange: [6, 20], mood: 'peaceful' },
+      blocked_figure: { location: 'sealed_district', timeRange: [0, 24], mood: 'trapped' }
+    };
+
+    // NPC moods affect behavior
+    this.npcMoods = {
+      friendly: { trustBonus: 5, dialogueBonus: true },
+      sad: { trustBonus: 0, dialogueBonus: false },
+      neutral: { trustBonus: 0, dialogueBonus: false },
+      wise: { trustBonus: 10, dialogueBonus: true },
+      watching: { trustBonus: -5, dialogueBonus: false },
+      blank: { trustBonus: 0, dialogueBonus: false },
+      cautious: { trustBonus: -10, dialogueBonus: false },
+      silent: { trustBonus: 0, dialogueBonus: false },
+      peaceful: { trustBonus: 15, dialogueBonus: true },
+      trapped: { trustBonus: 0, dialogueBonus: false },
+      hostile: { trustBonus: -20, dialogueBonus: false },
+      scared: { trustBonus: -10, dialogueBonus: false }
+    };
+  },
+
+  startTickLoop() {
+    // Run AI tick every 30 seconds
+    this.tickTimer = setInterval(() => {
+      this.runTick();
+    }, this.TICK_INTERVAL);
+  },
+
+  runTick() {
+    this.currentTick++;
+    const hour = State.hour;
+
+    // Update NPC positions based on time
+    for (let [npcId, schedule] of Object.entries(this.npcPositions)) {
+      const [start, end] = schedule.timeRange;
+      let inSchedule = false;
+
+      if (start < end) {
+        inSchedule = hour >= start && hour < end;
+      } else {
+        // Night schedule (wraps around midnight)
+        inSchedule = hour >= start || hour < end;
+      }
+
+      // Move NPC based on schedule
+      if (!inSchedule && schedule.mood !== 'trapped') {
+        this.moveNPCToRest(npcId);
+      }
+
+      // Update mood based on player actions
+      this.updateNPCMood(npcId);
+
+      // Random NPC-to-NPC interactions
+      if (Math.random() < 0.1) {
+        this.npcInteraction(npcId);
+      }
+    }
+
+    // Special events based on NPC states
+    this.checkNPCEvents();
+  },
+
+  moveNPCToRest(npcId) {
+    const restLocations = {
+      elias: 'hallway',
+      mira: 'apartment_407',
+      photo_dealer: 'photo_shop',
+      old_woman: 'ground_floor',
+      child_distant: 'window_view',
+      receptionist: 'hotel',
+      shadow_man: 'subway',
+      nurse_shadow: 'hospital',
+      gardener: 'greenhouse',
+      blocked_figure: 'sealed_district'
+    };
+
+    const currentPos = this.npcPositions[npcId];
+    if (currentPos.location !== restLocations[npcId]) {
+      currentPos.location = restLocations[npcId];
+    }
+  },
+
+  updateNPCMood(npcId) {
+    const trust = State.trust[npcId];
+    const pos = this.npcPositions[npcId];
+    if (!pos) return;
+
+    // Adjust mood based on trust
+    if (npcId === 'elias') {
+      if (trust < 30) pos.mood = 'hostile';
+      else if (trust < 50) pos.mood = 'cautious';
+      else if (trust > 70) pos.mood = 'friendly';
+    } else if (npcId === 'mira') {
+      if (trust < 40) pos.mood = 'scared';
+      else if (trust > 60) pos.mood = 'hopeful';
+    } else if (npcId === 'photo_dealer') {
+      if (trust < 40) pos.mood = 'cautious';
+      else if (trust > 60) pos.mood = 'helpful';
+    }
+
+    // Mood changes based on game events
+    if (State.reality_distortion > 50) {
+      pos.mood = 'nervous';
+    }
+    if (State.redVisible) {
+      pos.mood = 'terrified';
+    }
+  },
+
+  npcInteraction(npcId1) {
+    const npcIds = Object.keys(this.npcPositions);
+    const npcId2 = npcIds[Math.floor(Math.random() * npcIds.length)];
+
+    if (npcId1 === npcId2) return;
+
+    const pos1 = this.npcPositions[npcId1];
+    const pos2 = this.npcPositions[npcId2];
+
+    // Only interact if in same location
+    if (pos1.location === pos2.location) {
+      // Special interactions
+      if (npcId1 === 'elias' && npcId2 === 'photo_dealer') {
+        State.addFlag('elias_dealer_meeting');
+        Game.addNote('You notice Elias and the Photo Dealer talking in whispers...');
+      } else if (npcId1 === 'mira' && npcId2 === 'old_woman') {
+        State.addFlag('mira_oldwoman_talk');
+        Game.addNote('Mira is speaking with the Old Woman. They seem to know each other.');
+      }
+    }
+  },
+
+  checkNPCEvents() {
+    // Elias follows player if trust is low
+    if (State.trust.elias < 30 && State.location === 'hallway') {
+      if (Math.random() < 0.3 && !State.hasFlag('elias_following')) {
+        State.addFlag('elias_following');
+        setTimeout(() => {
+          Game.notify('You feel like someone is watching you...');
+          State.flags['elias_following'] = false;
+        }, 10000);
+      }
+    }
+
+    // Mira appears when player has red photos
+    if (State.photosWithRed > 0 && State.location === 'square') {
+      if (Math.random() < 0.2) {
+        Game.notify('Mira is standing at the fountain, staring at something you cannot see.');
+      }
+    }
+
+    // Photo Dealer reveals more when trust is high
+    if (State.trust.photo_dealer > 70 && this.currentTick % 5 === 0) {
+      if (!State.hasFlag('dealer_special_offer')) {
+        State.addFlag('dealer_special_offer');
+        Game.notify('The Photo Dealer has something special to show you...');
+      }
+    }
+
+    // Old Woman gives cryptic hints
+    if (State.location === 'ground_floor' && State.trust.old_woman > 50) {
+      if (Math.random() < 0.2) {
+        const hints = [
+          'The Old Woman murmurs: "The photographs remember what you forget."',
+          'The Old Woman whispers: "Seven days. Always seven days."',
+          'The Old Woman says: "The child knows the way home."'
+        ];
+        Game.notify(hints[Math.floor(Math.random() * hints.length)]);
+      }
+    }
+  },
+
+  getNPCAtLocation(locationId) {
+    const npcsHere = [];
+    for (let [npcId, pos] of Object.entries(this.npcPositions)) {
+      if (pos.location === locationId) {
+        npcsHere.push({
+          id: npcId,
+          mood: pos.mood,
+          character: Characters[npcId]
+        });
+      }
+    }
+    return npcsHere;
+  },
+
+  showNPCSchedule() {
+    let html = '<div style="text-align:left;max-width:600px;margin:0 auto">';
+    html += '<h3 style="color:#7affb2;margin-bottom:20px">NPC Schedules (Day ' + State.day + ')</h3>';
+
+    for (let [npcId, pos] of Object.entries(this.npcPositions)) {
+      const char = Characters[npcId];
+      if (!char) continue;
+      html += '<div style="padding:10px;margin:5px 0;border:1px solid #2a3a2a;border-radius:4px">';
+      html += '<div style="color:#7affb2;font-size:14px">' + char.name + '</div>';
+      html += '<div style="color:#a0a0a0;font-size:12px">Location: ' + Locations[pos.location]?.name + '</div>';
+      html += '<div style="color:#a0a0a0;font-size:12px">Mood: ' + pos.mood + '</div>';
+      html += '</div>';
+    }
+    html += '</div>';
+
+    const screen = document.getElementById('ending-screen');
+    const titleEl = document.getElementById('ending-title');
+    const textEl = document.getElementById('ending-text');
+    titleEl.textContent = '— NPC SCHEDULES —';
+    textEl.innerHTML = html;
+
+    const returnBtn = document.createElement('button');
+    returnBtn.className = 'menu-btn';
+    returnBtn.textContent = 'CLOSE';
+    returnBtn.onclick = () => screen.classList.remove('active');
+    returnBtn.style.marginTop = '20px';
+    textEl.appendChild(returnBtn);
+
+    screen.classList.add('active');
+  },
+
+  updateLocationNPCs() {
+    // Update which NPCs are visible at current location
+    const loc = Locations[State.location];
+    if (!loc) return;
+
+    const npcsHere = this.getNPCAtLocation(State.location);
+    loc.npcs = npcsHere.map(n => n.id);
+  }
+};
 const Phenomena = {
   borrowed_face: {
     name: 'The Borrowed Face',
@@ -4499,6 +4750,9 @@ const Game = {
     // Initialize performance manager
     PerfManager.init();
     
+    // Initialize NPC AI system
+    NPCAI.init();
+    
     Renderer.init();
     this.updateHUD();
 
@@ -4760,6 +5014,9 @@ const Game = {
 
       // Check for events at this location
       Events.checkEvents();
+      
+      // Update NPC positions at this location
+      NPCAI.updateLocationNPCs();
       
       // Visual effects based on location
       if (location === 'subway' || location === 'hospital') {
@@ -5237,6 +5494,10 @@ const Game = {
     } else {
       this.notify('No active puzzle');
     }
+  },
+
+  showNPCMap() {
+    NPCAI.showNPCSchedule();
   },
 
   showEnding(endingId) {
