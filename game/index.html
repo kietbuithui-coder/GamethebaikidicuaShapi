@@ -60,9 +60,18 @@ canvas#main-canvas{position:absolute;top:0;left:0;width:100%;height:100%;image-r
 .photo-item.changed{border-color:#b8a040}
 #photo-detail{position:absolute;top:0;left:0;width:100%;height:100%;background:#0a0a0af8;display:none;flex-direction:column;z-index:55}
 #photo-detail.active{display:flex}
-#photo-detail-canvas{flex:1;margin:16px}
+#photo-detail-canvas{flex:1;margin:16px;cursor:crosshair;border:1px solid #2a3a2a;position:relative}
+.photo-hotspot{position:absolute;border:2px solid #b8a040;border-radius:3px;animation:spotPulse 1.5s ease-in-out infinite;cursor:pointer;z-index:5}
+.photo-hotspot.found{border-color:#7affb2;animation:none}
+.photo-hotspot .spot-label{position:absolute;bottom:-20px;left:50%;transform:translateX(-50%);background:#0a0a0ae0;color:#b8a040;font-size:9px;padding:2px 6px;white-space:nowrap;font-family:'Courier New',monospace;border-radius:2px;display:none}
+.photo-hotspot:hover .spot-label,.photo-hotspot:active .spot-label{display:block}
+@keyframes spotPulse{0%,100%{opacity:0.3}50%{opacity:0.8}}
 #photo-detail-info{padding:12px;color:#a0a080;font-size:11px;line-height:1.6}
 #photo-detail-controls{display:flex;gap:8px;padding:12px;justify-content:center}
+#photo-zoom-controls{display:flex;gap:8px;padding:4px 12px;justify-content:center}
+.zoom-btn{background:#1a1a2e;border:1px solid #3a5a4a;color:#7affb2;padding:4px 12px;font-family:'Courier New',monospace;font-size:14px;cursor:pointer;border-radius:3px}
+.zoom-btn:active{background:#7affb230}
+.photo-zoom-level{color:#5a8a6a;font-size:10px;font-family:'Courier New',monospace;display:flex;align-items:center}
 #notebook-screen{background:#0a0a0af5;z-index:50;overflow-y:auto;padding:16px}
 #notebook-screen h2{color:#7affb2;font-size:16px;letter-spacing:2px;margin-bottom:16px;text-align:center}
 .note-entry{background:#1a1a2e40;border:1px solid #2a3a2a;padding:10px;margin-bottom:8px;border-radius:3px;color:#a0b0a0;font-size:12px;line-height:1.5}
@@ -170,6 +179,12 @@ canvas#main-canvas{position:absolute;top:0;left:0;width:100%;height:100%;image-r
 <!-- PHOTO DETAIL -->
 <div id="photo-detail">
 <canvas id="photo-detail-canvas"></canvas>
+<div id="photo-zoom-controls">
+<button class="zoom-btn" onclick="PhotoSystem.zoomOut()">−</button>
+<span class="photo-zoom-level" id="zoom-level">1.0x</span>
+<button class="zoom-btn" onclick="PhotoSystem.zoomIn()">+</button>
+<button class="zoom-btn" onclick="PhotoSystem.resetZoom()">⟲</button>
+</div>
 <div id="photo-detail-info"></div>
 <div id="photo-detail-controls">
 <button class="cam-btn" onclick="PhotoSystem.analyzePhoto()">🔍</button>
@@ -691,36 +706,40 @@ const Characters = {
         { speaker: 'Elias', text: "It doesn't matter what I look like in pictures. What matters is what I know.", delay: 3500 },
         { speaker: 'Elias', text: "And I know you need to be careful. Delete that photo.", delay: 5500 },
         { speaker: '', text: "What do you do?", choices: [
-          { text: "Delete the photo.", next: 'elias_delete_result' },
-          { text: "Keep it but say you deleted it.", next: 'elias_lie_result' },
-          { text: "Show it to the Photo Dealer.", next: 'elias_dealer_result' },
-          { text: "Say nothing.", next: 'elias_silent_result' }
+          { text: "Delete the photo. [Trust Elias +15]", next: 'elias_delete_result' },
+          { text: "Keep it but say you deleted it. [Risky]", next: 'elias_lie_result' },
+          { text: "Show it to the Photo Dealer. [New path]", next: 'elias_dealer_result' },
+          { text: "Say nothing. [Neutral]", next: 'elias_silent_result' }
         ]}
       ],
       elias_delete_result: [
         { speaker: '', text: "You delete the photo. Elias nods slowly.", delay: 0 },
-        { speaker: 'Elias', text: "Thank you. You're making the right choice. I think.", delay: 1500 },
-        { speaker: '', text: "Trust with Elias increases. But was the photo really showing something dangerous?", delay: 3500 },
-        { speaker: '', text: "[Trust Elias +15] [Photo evidence lost]", delay: 5000 }
+        { speaker: 'Elias', text: "Thank you. You're making the right choice. I think.", delay: 2000 },
+        { speaker: 'Elias', text: "I'm trying to protect you. Even if you don't understand why yet.", delay: 4000 },
+        { speaker: '', text: "His eyes soften. For a moment, he almost looks sad.", delay: 6000 },
+        { speaker: '', text: "[Trust Elias +15] [Photo evidence lost] [Elias will share more later]", delay: 8000 }
       ],
       elias_lie_result: [
         { speaker: '', text: "You pretend to delete it. Elias watches your hands carefully.", delay: 0 },
         { speaker: 'Elias', text: "You didn't delete it.", delay: 2000 },
-        { speaker: '', text: "He doesn't accuse you further. But something has changed.", delay: 3500 },
-        { speaker: '', text: "[Trust Elias -20] [Elias is now suspicious of you]", delay: 5000 }
+        { speaker: '', text: "He says it matter-of-factly. Not accusing. Just stating a fact.", delay: 4000 },
+        { speaker: 'Elias', text: "You can keep it if you want. But don't come to me when it starts changing things.", delay: 6000 },
+        { speaker: '', text: "He turns and walks away. His shadow lags behind him by a fraction of a second.", delay: 8000 },
+        { speaker: '', text: "[Trust Elias -20] [Elias will act differently from now on] [The Second Shadow detected]", delay: 10000 }
       ],
       elias_dealer_result: [
         { speaker: '', text: "You walk away without responding. Elias calls after you.", delay: 0 },
         { speaker: 'Elias', text: "That photo. Don't show it to anyone.", delay: 1500 },
         { speaker: '', text: "His voice carries an urgency you haven't heard before.", delay: 3500 },
-        { speaker: '', text: "[Trust Elias -10] [Photo Dealer path unlocked]", delay: 5000 }
+        { speaker: '', text: "When you arrive at the Photo Dealer's shop, you notice he's already holding a photograph. It's the same one.", delay: 5500 },
+        { speaker: '', text: "[Trust Elias -10] [Photo Dealer path unlocked] [Elias and the Dealer may know each other]", delay: 7500 }
       ],
       elias_silent_result: [
         { speaker: '', text: "You say nothing. Elias turns to face you fully.", delay: 0 },
         { speaker: 'Elias', text: "Silence is also an answer here. Perhaps the most honest one.", delay: 2000 },
         { speaker: 'Elias', text: "You still haven't remembered, have you?", delay: 4000 },
         { speaker: '', text: "He walks away. You're not sure what he meant.", delay: 6000 },
-        { speaker: '', text: "[Memory query triggered] [Elias knows something about your past]", delay: 7500 }
+        { speaker: '', text: "[Memory query triggered] [Elias knows something about your past] [Trust neutral]", delay: 8000 }
       ]
     }
   },
@@ -1178,11 +1197,14 @@ const PhotoSystem = {
     const ctx = canvas.getContext('2d');
     const info = document.getElementById('photo-detail-info');
 
-    canvas.width = canvas.offsetWidth * 2;
-    canvas.height = canvas.offsetHeight * 2;
-    ctx.scale(2, 2);
-    const w = canvas.offsetWidth;
-    const h = canvas.offsetHeight;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const cw = canvas.offsetWidth || 300;
+    const ch = canvas.offsetHeight || 400;
+    canvas.width = cw * dpr;
+    canvas.height = ch * dpr;
+    ctx.scale(dpr, dpr);
+    const w = cw;
+    const h = ch;
 
     // Render the photo
     Renderer.drawScene(ctx, photo.location, w, h, true, photo);
@@ -1195,12 +1217,16 @@ const PhotoSystem = {
       ctx.globalAlpha = 1;
     }
 
-    // Draw anomaly indicators
+    // Draw anomaly indicators as interactive hotspots
     photo.anomalies.forEach((a, i) => {
+      const hx = w * (0.15 + i * 0.18);
+      const hy = h * 0.25;
+      const hw = w * 0.12;
+      const hh = h * 0.22;
       ctx.strokeStyle = '#b8a04080';
       ctx.lineWidth = 1;
       ctx.setLineDash([4, 4]);
-      ctx.strokeRect(w * (0.2 + i * 0.15), h * 0.3, w * 0.12, h * 0.2);
+      ctx.strokeRect(hx, hy, hw, hh);
       ctx.setLineDash([]);
     });
 
@@ -1210,7 +1236,7 @@ const PhotoSystem = {
     ctx.fillText(`Viewed: ${photo.viewCount}x`, 8, h - 8);
 
     // Photo info
-    let infoText = `<b>Location:</b> ${photo.location}<br>`;
+    let infoText = `<b>Location:</b> ${Locations[photo.location]?.name || photo.location}<br>`;
     infoText += `<b>Day ${photo.day}</b> — ${photo.time}<br>`;
     infoText += `<b>Subjects:</b> ${photo.subjects.length > 0 ? photo.subjects.join(', ') : 'None visible'}<br>`;
     infoText += `<b>Anomalies:</b> ${photo.anomalies.length > 0 ? photo.anomalies.join(', ') : 'None detected'}`;
@@ -1219,6 +1245,77 @@ const PhotoSystem = {
     info.innerHTML = infoText;
 
     document.getElementById('photo-detail').classList.add('active');
+
+    // Generate interactive hotspots for anomalies
+    this.generateHotspots(photo, w, h);
+  },
+
+  generateHotspots(photo, w, h) {
+    const canvas = document.getElementById('photo-detail-canvas');
+    // Remove existing hotspots
+    canvas.querySelectorAll('.photo-hotspot').forEach(el => el.remove());
+
+    if (!photo.analyzed && photo.anomalies.length > 0) {
+      // Add a hint to analyze
+      const hint = document.createElement('div');
+      hint.style.cssText = 'position:absolute;top:8px;right:8px;background:#b8a04080;color:#b8a040;padding:4px 8px;font-size:9px;border-radius:2px;font-family:Courier New';
+      hint.textContent = '🔍 Tap analyze to investigate';
+      canvas.appendChild(hint);
+    }
+
+    photo.anomalies.forEach((anomaly, i) => {
+      const hotspot = document.createElement('div');
+      hotspot.className = 'photo-hotspot';
+      hotspot.style.left = (15 + i * 18) + '%';
+      hotspot.style.top = '25%';
+      hotspot.style.width = '12%';
+      hotspot.style.height = '22%';
+      hotspot.dataset.anomaly = anomaly;
+
+      const label = document.createElement('div');
+      label.className = 'spot-label';
+      label.textContent = this.getAnomalyDescription(anomaly);
+      hotspot.appendChild(label);
+
+      hotspot.onclick = (e) => {
+        e.stopPropagation();
+        if (!photo.analyzed) {
+          Game.notify('Use the 🔍 button to analyze this area');
+          return;
+        }
+        hotspot.classList.add('found');
+        Game.addNote(`Photo clue found (${anomaly}): ${this.getAnomalyDescription(anomaly)}`);
+        State.evidence_collected++;
+        Game.notify('Evidence recorded');
+        Audio_.playTone(800, 0.15, 'sine', 0.1);
+      };
+      canvas.appendChild(hotspot);
+    });
+  },
+
+  getAnomalyDescription(anomaly) {
+    const descriptions = {
+      'shadow_person': 'A humanoid shadow figure that shouldn\'t be here',
+      'extra_door': 'An additional door that doesn\'t exist in reality',
+      'child_on_bed': 'A small figure sitting on the bed',
+      'child_closer': 'The child is visible, closer than before',
+      'extra_object': 'An object that wasn\'t there when you looked',
+      'no_reflection': 'The mirror shows an empty room',
+      'figure_behind_people': 'A figure standing behind the crowd',
+      'wrong_architecture': 'The room layout doesn\'t match reality',
+      'elias_shadow': 'Elias\'s shadow doesn\'t match his body',
+      'symbols_on_wall': 'Unrecognizable symbols on the walls',
+      'patients_in_photo': 'Patients appearing in empty beds',
+      'extra_beds': 'More beds than should exist',
+      'color_shift': 'Colors around this area are subtly wrong',
+      'new_figure': 'A new figure appeared that wasn\'t there before',
+      'removed_subject': 'Someone who should be here is missing',
+      'altered_after_sleep': 'This photo changed overnight',
+      'text_appears': 'Hidden text visible only through the camera',
+      'object_moved': 'An object has moved between shots',
+      'unexplained_figure': 'A figure with no explanation'
+    };
+    return descriptions[anomaly] || 'Unknown anomaly detected';
   },
 
   analyzePhoto() {
@@ -1268,6 +1365,135 @@ const PhotoSystem = {
   closeDetail() {
     document.getElementById('photo-detail').classList.remove('active');
     State.currentPhotoViewing = null;
+    this.currentZoom = 1;
+    this.zoomOffsetX = 0;
+    this.zoomOffsetY = 0;
+  },
+
+  currentZoom: 1,
+  zoomOffsetX: 0,
+  zoomOffsetY: 0,
+
+  zoomIn() {
+    this.currentZoom = Math.min(4, this.currentZoom + 0.5);
+    document.getElementById('zoom-level').textContent = this.currentZoom.toFixed(1) + 'x';
+    this.redrawPhoto();
+  },
+
+  zoomOut() {
+    this.currentZoom = Math.max(1, this.currentZoom - 0.5);
+    document.getElementById('zoom-level').textContent = this.currentZoom.toFixed(1) + 'x';
+    if (this.currentZoom === 1) {
+      this.zoomOffsetX = 0;
+      this.zoomOffsetY = 0;
+    }
+    this.redrawPhoto();
+  },
+
+  resetZoom() {
+    this.currentZoom = 1;
+    this.zoomOffsetX = 0;
+    this.zoomOffsetY = 0;
+    document.getElementById('zoom-level').textContent = '1.0x';
+    this.redrawPhoto();
+  },
+
+  redrawPhoto() {
+    const photo = State.currentPhotoViewing;
+    if (!photo) return;
+    const canvas = document.getElementById('photo-detail-canvas');
+    const ctx = canvas.getContext('2d');
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const cw = canvas.offsetWidth || 300;
+    const ch = canvas.offsetHeight || 400;
+    canvas.width = cw * dpr;
+    canvas.height = ch * dpr;
+
+    ctx.save();
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, cw, ch);
+
+    const zoom = this.currentZoom;
+    const ox = this.zoomOffsetX;
+    const oy = this.zoomOffsetY;
+
+    ctx.translate(cw/2 + ox, ch/2 + oy);
+    ctx.scale(zoom, zoom);
+    ctx.translate(-cw/2, -ch/2);
+
+    Renderer.drawScene(ctx, photo.location, cw, ch, true, photo);
+
+    if (photo.hasRed) {
+      ctx.globalAlpha = 0.3;
+      ctx.fillStyle = '#8b0000';
+      ctx.fillRect(cw * 0.3, ch * 0.2, cw * 0.1, ch * 0.5);
+      ctx.globalAlpha = 1;
+    }
+
+    ctx.restore();
+
+    // Re-render hotspots with zoom
+    this.generateHotspots(photo, cw, ch);
+    this.setupPhotoPan(canvas, cw, ch);
+  },
+
+  setupPhotoPan(canvas, cw, ch) {
+    canvas._panning = false;
+    canvas._lastX = 0;
+    canvas._lastY = 0;
+
+    const startPan = (x, y) => {
+      if (this.currentZoom <= 1) return;
+      canvas._panning = true;
+      canvas._lastX = x;
+      canvas._lastY = y;
+    };
+    const movePan = (x, y) => {
+      if (!canvas._panning) return;
+      const dx = x - canvas._lastX;
+      const dy = y - canvas._lastY;
+      this.zoomOffsetX += dx;
+      this.zoomOffsetY += dy;
+      canvas._lastX = x;
+      canvas._lastY = y;
+      // Clamp
+      const maxOffset = cw * (this.currentZoom - 1) / 2;
+      this.zoomOffsetX = Math.max(-maxOffset, Math.min(maxOffset, this.zoomOffsetX));
+      this.zoomOffsetY = Math.max(-maxOffset, Math.min(maxOffset, this.zoomOffsetY));
+      this.redrawPhoto();
+    };
+    const endPan = () => { canvas._panning = false; };
+
+    // Mouse events
+    canvas.onmousedown = (e) => startPan(e.clientX, e.clientY);
+    canvas.onmousemove = (e) => movePan(e.clientX, e.clientY);
+    canvas.onmouseup = endPan;
+    canvas.onmouseleave = endPan;
+
+    // Touch events
+    canvas.ontouchstart = (e) => {
+      if (e.touches.length === 1) {
+        startPan(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    };
+    canvas.ontouchmove = (e) => {
+      if (e.touches.length === 1 && canvas._panning) {
+        e.preventDefault();
+        movePan(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    };
+    canvas.ontouchend = endPan;
+
+    // Double-tap to zoom
+    let lastTap = 0;
+    canvas.addEventListener('touchend', (e) => {
+      const now = Date.now();
+      if (now - lastTap < 300) {
+        if (this.currentZoom > 1) this.resetZoom();
+        else this.zoomIn();
+      }
+      lastTap = now;
+    });
   }
 };
 
@@ -2265,13 +2491,6 @@ const Narrative = {
         this.currentDialogueId = `${charId}:${choice.next}`;
         this.currentLineIndex = 0;
         this.showLine(char.dialogues[choice.next]);
-      } else {
-        // Try to find it as a sub-dialogue
-        const parts = choice.next.split('_');
-        if (parts[0] === 'elias' && char.dialogues[choice.next]) {
-          this.currentLineIndex = 0;
-          this.showLine(char.dialogues[choice.next]);
-        }
       }
     }
 
@@ -2282,14 +2501,31 @@ const Narrative = {
       });
     }
 
-    // Track choice types for ending determination
-    if (choice.text && choice.text.toLowerCase().includes('delete')) {
-      State.deletedEvidence++;
+    // Parse choice text for trust/behavior indicators
+    const text = choice.text || '';
+    const lower = text.toLowerCase();
+
+    // Trust changes based on choice
+    if (lower.includes('trust elias')) {
+      if (text.includes('+')) State.trust.elias += 15;
+      if (text.includes('-')) State.trust.elias -= 15;
     }
-    if (choice.text && (choice.text.toLowerCase().includes('lie') || choice.text.toLowerCase().includes('keep it but say'))) {
+    if (lower.includes('trust mira')) {
+      if (text.includes('+')) State.trust.mira += 10;
+      if (text.includes('-')) State.trust.mira -= 10;
+    }
+    if (lower.includes('risky')) {
       State.liedCount++;
+      State.suspicion_city += 5;
     }
-    if (choice.text && choice.text.toLowerCase().includes('say nothing')) {
+    if (lower.includes('delete')) {
+      State.deletedEvidence++;
+      State.photo_integrity -= 5;
+    }
+    if (lower.includes('new path') || lower.includes('unlocked')) {
+      State.truth_exposure += 10;
+    }
+    if (lower.includes('say nothing') || lower.includes('neutral')) {
       State.silentCount++;
     }
 
@@ -2323,17 +2559,21 @@ const Events = {
     2: [
       { id: 'photo_change', time: '07:00', trigger: 'auto', action: 'photoChange' },
       { id: 'mira_encounter', time: '12:00', trigger: 'location', location: 'square', action: 'miraEncounter' },
-      { id: 'child_first', time: 'any', trigger: 'location', location: 'street', action: 'childFirstSighting' }
+      { id: 'child_first', time: 'any', trigger: 'location', location: 'street', action: 'childFirstSighting' },
+      { id: 'mirror_check', time: '08:00', trigger: 'location', location: 'apartment_407', action: 'mirrorCheck' },
+      { id: 'elias_remembers', time: 'any', trigger: 'location', location: 'hallway', action: 'eliasRemembers' }
     ],
     3: [
       { id: 'hallway_change', time: '08:00', trigger: 'auto', action: 'hallwayChanged' },
       { id: 'dealer_found', time: 'any', trigger: 'location', location: 'photo_shop', action: 'dealerEncounter' },
-      { id: 'night_sounds', time: '22:00', trigger: 'night', action: 'nightSounds' }
+      { id: 'night_sounds', time: '22:00', trigger: 'night', action: 'nightSounds' },
+      { id: 'note_change', time: '07:00', trigger: 'location', location: 'apartment_407', action: 'noteChange' }
     ],
     4: [
       { id: 'hospital_access', time: 'any', trigger: 'location', location: 'hospital', action: 'hospitalEvent' },
       { id: 'red_first', time: 'any', trigger: 'photo', action: 'firstRedPhoto' },
-      { id: 'mira_child_link', time: 'any', trigger: 'flag', flag: 'mira_met', location: 'square', action: 'miraChildLink' }
+      { id: 'mira_child_link', time: 'any', trigger: 'flag', flag: 'mira_met', location: 'square', action: 'miraChildLink' },
+      { id: 'consequence_check', time: '07:00', trigger: 'auto', action: 'consequenceCheck' }
     ],
     5: [
       { id: 'people_missing', time: '07:00', trigger: 'auto', action: 'peopleMissing' },
@@ -2423,11 +2663,35 @@ const Events = {
           Game.startDialogue('child_distant', 'first_sighting');
         }
         break;
+      case 'mirrorCheck':
+        if (!State.hasFlag('mirror_day2')) {
+          State.addFlag('mirror_day2');
+          Game.addNote('You checked the mirror this morning. Your reflection looks normal. But was it looking back at you a moment too long?');
+          if (State.photos.length > 0) {
+            Game.addNote('⚠ One of your photographs seems to have changed overnight. The lighting is different.');
+          }
+        }
+        break;
+      case 'eliasRemembers':
+        if (State.npcsMet.includes('elias')) {
+          Game.startDialogueWithText('Elias', '"Good morning. I saw you were up late last night. The hallway lights were on until 2 AM."\n\nHe says this casually. But you were in your apartment. The hallway lights shouldn\'t be visible from there.\n\nHow does he know?');
+          State.flags['elias_watches'] = true;
+          State.trust.elias = Math.max(0, State.trust.elias - 5);
+        }
+        break;
       case 'hallwayChanged':
         State.hallwayDoors = 5;
         Game.addNote('⚠ The hallway now has an extra door. You\'re certain it wasn\'t there yesterday.');
         Game.notify('The hallway feels... longer.');
         Audio_.playUnsettling();
+        break;
+      case 'noteChange':
+        if (!State.hasFlag('note_changed')) {
+          State.addFlag('note_changed');
+          Game.startDialogueWithText('', 'You look at the note on your table again.\n\nThe handwriting is still yours.\nBut the words have changed.\n\n"Don\'t trust the ones who remember."\n\nYesterday it said something else. You\'re sure of it.\n\n...Aren\'t you?');
+          State.memory_stability = Math.max(10, State.memory_stability - 5);
+          State.reality_distortion += 3;
+        }
         break;
       case 'dealerEncounter':
         if (!State.hasFlag('dealer_met')) {
@@ -2459,6 +2723,28 @@ const Events = {
         break;
       case 'miraChildLink':
         Game.addNote('Mira claims the child you\'ve been seeing is her daughter. No one else remembers the child.');
+        break;
+      case 'consequenceCheck':
+        // Early choices start having consequences
+        if (State.deletedEvidence >= 2 && !State.hasFlag('consequence_photos')) {
+          State.addFlag('consequence_photos');
+          Game.addNote('⚠ You try to review your early photographs, but some are blank. The evidence you destroyed is gone. But something else is gone too — memories of what they showed.');
+          State.memory_stability -= 10;
+        }
+        if (State.hasFlag('red_unlocked') && State.photosWithRed >= 1 && !State.hasFlag('consequence_red')) {
+          State.addFlag('consequence_red');
+          Game.addNote('⚠ The walls in your apartment seem different today. The green light has a faint reddish tint at the edges. Is it spreading?');
+          State.reality_distortion += 5;
+        }
+        if (State.trust.elias < 30 && !State.hasFlag('consequence_elias_hostile')) {
+          State.addFlag('consequence_elias_hostile');
+          Game.addNote('⚠ Elias hasn\'t spoken to you in two days. But you can feel him watching. His shadow appears in your photographs.');
+        }
+        if (State.trust.elias > 70 && !State.hasFlag('consequence_elias_ally')) {
+          State.addFlag('consequence_elias_ally');
+          Game.addNote('Elias left a note under your door: "Meet me at the subway at midnight. I can show you what\'s really there."');
+          State.flags['subway_secret_available'] = true;
+        }
         break;
       case 'peopleMissing':
         State.peopleDisappeared += 1;
@@ -2941,16 +3227,64 @@ const Game = {
     // Track NPC meeting
     if (!State.npcsMet.includes(npcId)) {
       State.npcsMet.push(npcId);
+      // Find first available dialogue
+      const dlgKeys = Object.keys(char.dialogues);
+      const firstDlg = dlgKeys.find(k => k === 'first_meeting') || dlgKeys[0] || dlgKeys.find(k => k === 'encounter') || dlgKeys.find(k => k === 'generic');
+      if (firstDlg) {
+        this.startDialogue(npcId, firstDlg);
+      }
+    } else {
+      // Trust-dependent behavior
+      this.startTrustBasedDialogue(npcId);
     }
+
     if (npcId === 'elias') State.addFlag('elias_met');
     if (npcId === 'mira') State.addFlag('mira_met');
 
-    const firstDialogue = Object.keys(char.dialogues)[0];
-    if (firstDialogue) {
-      this.startDialogue(npcId, firstDialogue);
-    }
-
     Audio_.playTone(300, 0.1, 'sine', 0.1);
+  },
+
+  startTrustBasedDialogue(npcId) {
+    const trustKey = npcId;
+    const trustLevel = State.trust[trustKey] || 50;
+    const day = State.day;
+
+    // Different dialogue based on trust and day progression
+    if (npcId === 'elias') {
+      if (trustLevel < 30) {
+        Game.startDialogueWithText('Elias', '"We need to talk about the photos. You\'ve been... investigating things. I can\'t protect you if you don\'t trust me."\n\n[Trust is LOW — Elias is guarded]');
+      } else if (trustLevel > 70 && day >= 4) {
+        Game.startDialogueWithText('Elias', '"You\'re getting close to the truth. I can feel it. But the closer you get, the more dangerous it becomes. I should tell you about the others who tried."\n\n[Trust is HIGH — Elias shares secrets]');
+        State.flags['elias_secret'] = true;
+      } else if (day >= 5) {
+        Game.startDialogueWithText('Elias', '"You\'ve been here longer now. You\'ve noticed things. The way time moves differently. The way people... repeat."\n\n[Elias is watching you closely]');
+      } else {
+        Game.startDialogueWithText('Elias', '"How are you settling in? Any questions about the neighborhood? I know everyone here."\n\n[Elias is friendly but watchful]');
+      }
+    } else if (npcId === 'mira') {
+      if (trustLevel < 30) {
+        Game.startDialogueWithText('Mira', '"You don\'t believe me. I can see it. But the photographs will prove it. They always do."\n\n[Mira is distant, hurt]');
+      } else if (trustLevel > 60) {
+        Game.startDialogueWithText('Mira', '"Thank you for listening. No one else does. The child... she\'s getting closer to your apartment. I think she wants something from you."\n\n[Mira trusts you — shares more about the child]');
+        State.child_closeness = Math.min(7, State.child_closeness + 1);
+      } else {
+        Game.startDialogueWithText('Mira', '"Have you seen her? The child? She was here yesterday. No one else saw her."\n\n[Mira is searching for validation]');
+      }
+    } else if (npcId === 'photo_dealer') {
+      if (trustLevel < 40) {
+        Game.startDialogueWithText('The Photo Dealer', '"You keep coming back. Good. But trust is earned here, not given."\n\n[The Dealer is cautious]');
+      } else {
+        Game.startDialogueWithText('The Photo Dealer', '"I have new photographs. Some... unsettling ones. They show the city before the change. And you were there."\n\n[The Dealer shares more]');
+      }
+    } else if (npcId === 'old_woman') {
+      if (day >= 5) {
+        Game.startDialogueWithText('The Old Woman', '"Another cycle almost complete. You\'re doing better this time. Or worse. It\'s hard to tell from the outside."\n\n[She remembers your previous cycles]');
+      } else {
+        Game.startDialogueWithText('The Old Woman', '"You\'re still asking questions. Good. Most people stop asking by day three."\n\n[She watches you with clear eyes]');
+      }
+    } else {
+      Game.startDialogueWithText(char.name, char.dialogues.generic ? char.dialogues.generic[0].text : '...');
+    }
   },
 
   interactHotspot(spotId) {
@@ -3024,25 +3358,73 @@ const Game = {
     State.day++;
 
     this.transition('apartment_407');
-    this.addNote(`Slept. Day ${State.day} begins.`);
+
+    // Day transition sequence
+    let changes = [];
+    changes.push(`Day ${State.day} begins. The green light is the same.`);
 
     // Photos may change during sleep
-    if (State.photos.length > 0 && Math.random() < 0.4) {
+    if (State.photos.length > 0 && Math.random() < 0.3 + State.reality_distortion / 200) {
       const photo = State.photos[Math.floor(Math.random() * State.photos.length)];
       if (!photo.altered) {
         photo.altered = true;
-        const alterations = ['new_figure', 'removed_subject', 'color_shift', 'text_appears'];
-        photo.anomalies.push(alterations[Math.floor(Math.random() * alterations.length)]);
+        const alterations = ['new_figure', 'removed_subject', 'color_shift', 'text_appears', 'object_moved'];
+        const alteration = alterations[Math.floor(Math.random() * alterations.length)];
+        photo.anomalies.push(alteration);
         State.photoChanges.push({ photoId: photo.id, alteration: 'sleep', day: State.day });
-        this.notify('Your photos feel... different today.');
+        changes.push('⚠ A photograph has changed overnight.');
       }
+    }
+
+    // New photos may appear
+    if (State.day >= 3 && Math.random() < 0.2 + State.reality_distortion / 300) {
+      const mysteryPhoto = PhotoSystem.createPhoto('apartment_407', ['unexplained_figure'], false, ['unknown']);
+      mysteryPhoto.day = State.day - 1;
+      mysteryPhoto.time = '03:33';
+      changes.push('⚠ A new photograph appeared in your album. You don\'t remember taking it.');
+    }
+
+    // Trust decay/growth
+    Object.keys(State.trust).forEach(npc => {
+      // Trust with people you ignored slowly decays
+      if (State.trust[npc] > 50) State.trust[npc] = Math.max(40, State.trust[npc] - 2);
+    });
+
+    // Memory stability decreases over time
+    State.memory_stability = Math.max(10, State.memory_stability - 3);
+
+    // Reality distortion increases
+    if (State.photosWithRed > 0) {
+      State.reality_distortion = Math.min(100, State.reality_distortion + 2);
     }
 
     // Film replenish
     State.film = Math.min(20, State.film + 3);
 
-    // Restore some memory stability
-    State.memory_stability = Math.min(100, State.memory_stability + 10);
+    // Consequence check
+    if (State.liedCount > 0 && State.day >= 4 && !State.hasFlag('lies_caught')) {
+      if (Math.random() < 0.3 * State.liedCount) {
+        changes.push('⚠ Someone noticed you weren\'t telling the truth.');
+        State.addFlag('lies_caught');
+        State.trust.elias = Math.max(0, State.trust.elias - 10);
+      }
+    }
+
+    if (State.deletedEvidence >= 3 && State.day >= 5 && !State.hasFlag('evidence_gone')) {
+      changes.push('⚠ You realize you\'ve destroyed evidence you might need later.');
+      State.addFlag('evidence_gone');
+      State.photo_integrity = Math.max(0, State.photo_integrity - 15);
+    }
+
+    this.addNote(changes.join('\n'));
+    this.notify(changes[0]);
+
+    // Show consequence summary after a delay
+    setTimeout(() => {
+      changes.slice(1).forEach((c, i) => {
+        setTimeout(() => Game.notify(c), i * 3000);
+      });
+    }, 2000);
 
     Audio_.playDrone(55);
     this.updateHUD();
