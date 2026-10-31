@@ -5170,6 +5170,9 @@ const Game = {
     // Initialize NPC AI system
     NPCAI.init();
     
+    // Load assets first
+    Assets.loadAll();
+    
     Renderer.init();
     this.updateHUD();
 
