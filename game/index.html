@@ -1206,8 +1206,43 @@ const PhotoSystem = {
     const w = cw;
     const h = ch;
 
-    // Render the photo
-    Renderer.drawScene(ctx, photo.location, w, h, true, photo);
+    // Try to use a pre-rendered photo image first
+    const photoImage = this.getPhotoImage(photo);
+    if (photoImage && photoImage.complete && photoImage.naturalWidth > 0) {
+      // Cover-fit the image
+      const imgRatio = photoImage.width / photoImage.height;
+      const screenRatio = w / h;
+      let sx, sy, sw, sh;
+      if (imgRatio > screenRatio) {
+        sh = photoImage.height;
+        sw = photoImage.height * screenRatio;
+        sx = (photoImage.width - sw) / 2;
+        sy = 0;
+      } else {
+        sw = photoImage.width;
+        sh = photoImage.width / screenRatio;
+        sx = 0;
+        sy = (photoImage.height - sh) / 2;
+      }
+      ctx.drawImage(photoImage, sx, sy, sw, sh, 0, 0, w, h);
+
+      // Overlay Canvas 2D anomalies on top
+      if (photo.hasRed) {
+        ctx.globalAlpha = 0.15;
+        ctx.fillStyle = '#8b0000';
+        ctx.fillRect(w * 0.2, h * 0.15, w * 0.15, h * 0.4);
+        ctx.globalAlpha = 1;
+      }
+    } else {
+      // Fallback to Canvas 2D rendering
+      Renderer.drawScene(ctx, photo.location, w, h, true, photo);
+      if (photo.hasRed) {
+        ctx.globalAlpha = 0.3;
+        ctx.fillStyle = '#8b0000';
+        ctx.fillRect(w * 0.3, h * 0.2, w * 0.1, h * 0.5);
+        ctx.globalAlpha = 1;
+      }
+    }
 
     // Draw red elements if present
     if (photo.hasRed) {
@@ -1248,6 +1283,52 @@ const PhotoSystem = {
 
     // Generate interactive hotspots for anomalies
     this.generateHotspots(photo, w, h);
+  },
+
+  photoImages: {},
+  photoImageLoaded: false,
+
+  loadPhotoImages() {
+    const images = {
+      'photo_shadow.jpg': 'apartment_407',
+      'photo_hallway.jpg': 'hallway',
+      'photo_red.jpg': 'street',
+      'photo_elias.jpg': 'hallway',
+      'photo_bed.jpg': 'apartment_407',
+      'photo_mirror.jpg': 'apartment_407',
+      'photo_child_approach.jpg': 'hallway',
+      'photo_hospital.jpg': 'hospital',
+      'photo_dealer_photo.jpg': 'photo_shop'
+    };
+
+    Object.entries(images).forEach(([file, loc]) => {
+      const img = new Image();
+      img.src = 'assets/' + file;
+      img.onload = () => {
+        if (!this.photoImages[loc]) this.photoImages[loc] = [];
+        this.photoImages[loc].push(img);
+      };
+    });
+  },
+
+  getPhotoImage(photo) {
+    const locImages = this.photoImages[photo.location];
+    if (!locImages || locImages.length === 0) return null;
+
+    // Select based on anomalies
+    if (photo.hasRed) {
+      // Prefer red photo for street
+      if (photo.location === 'street') return this.photoImages['street']?.[0];
+    }
+    if (photo.anomalies.includes('shadow_person') || photo.anomalies.includes('child_on_bed')) {
+      return this.photoImages[photo.location]?.[0];
+    }
+    if (photo.anomalies.includes('extra_door')) {
+      return this.photoImages['hallway']?.[0];
+    }
+
+    // Random selection from available
+    return locImages[Math.floor(Math.random() * locImages.length)];
   },
 
   generateHotspots(photo, w, h) {
@@ -2578,7 +2659,8 @@ const Events = {
     5: [
       { id: 'people_missing', time: '07:00', trigger: 'auto', action: 'peopleMissing' },
       { id: 'subway_access', time: 'any', trigger: 'location', location: 'subway', action: 'subwayEvent' },
-      { id: 'hotel_anomaly', time: 'any', trigger: 'location', location: 'hotel', action: 'hotelEvent' }
+      { id: 'hotel_anomaly', time: 'any', trigger: 'location', location: 'hotel', action: 'hotelEvent' },
+      { id: 'memory_fragment_1', time: '03:00', trigger: 'night', action: 'memory_fragment' }
     ],
     6: [
       { id: 'sealed_district', time: 'any', trigger: 'location', location: 'sealed_district', action: 'sealedEvent' },
@@ -2797,6 +2879,23 @@ const Events = {
           }, 10000);
         }, 2000);
         break;
+      case 'memory_fragment':
+        if (!State.hasFlag('memory_fragment')) {
+          State.addFlag('memory_fragment');
+          const fragments = [
+            'You remember standing in a room. The walls were covered in photographs. All of them showed you. None of them were taken by you.',
+            'You remember a voice saying: "The camera doesn\'t show truth. It creates it."',
+            'You remember walking through a door that wasn\'t there. On the other side, the city was a different color.',
+            'You remember someone who looked exactly like you. They smiled and said: "Not this time."',
+            'You remember the color red. It was everywhere. Then someone decided it shouldn\'t exist.'
+          ];
+          const fragment = fragments[Math.floor(Math.random() * fragments.length)];
+          Game.addNote(`⚠ MEMORY FRAGMENT: ${fragment}`);
+          State.memory_stability = Math.max(5, State.memory_stability - 8);
+          Game.notify('A memory surfaces...');
+          Audio_.playWhisper();
+        }
+        break;
       case 'greenhouseEvent':
         if (!State.hasFlag('greenhouse_explored')) {
           State.addFlag('greenhouse_explored');
@@ -2967,6 +3066,7 @@ const Game = {
     Assets.loadAll(() => {
       this.notify('Assets loaded ✓');
     });
+    PhotoSystem.loadPhotoImages();
   },
 
   newGame() {
