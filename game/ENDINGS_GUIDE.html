@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hướng dẫn Unlock All Endings</title>
+    <style>
+        body {
+            background: #0a0f0a;
+            color: #7affb2;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            max-width: 900px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+        h1 {
+            text-align: center;
+            letter-spacing: 4px;
+            margin-bottom: 30px;
+        }
+        h2 {
+            color: #5a8a6a;
+            margin-top: 30px;
+            border-bottom: 1px solid #2a3a2a;
+            padding-bottom: 10px;
+        }
+        code {
+            background: #1a1a2e;
+            padding: 2px 8px;
+            border-radius: 3px;
+            color: #7affb2;
+        }
+        .method {
+            background: #1a1a2e20;
+            border: 1px solid #2a3a2a;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .method h3 {
+            color: #7affb2;
+            margin-top: 0;
+        }
+        .step {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .ending-list {
+            background: #0a0f0a;
+            border: 1px solid #2a3a2a;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .ending {
+            margin: 10px 0;
+            padding: 10px;
+            background: #1a1a2e15;
+            border-left: 3px solid #7affb2;
+        }
+        .ending strong {
+            color: #7affb2;
+        }
+        a {
+            color: #7affb2;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎮 HƯỚNG DẪN UNLOCK ALL ENDINGS</h1>
+    
+    <div class="method">
+        <h3>🔓 CÁCH 1: UNLOCK TẤT CẢ ENDINGS (NHANH NHẤT)</h3>
+        <div class="step">
+            <strong>Bước 1:</strong> Mở game trong trình duyệt<br>
+            <a href="/" target="_blank">👉 Click vào đây để mở game</a>
+        </div>
+        <div class="step">
+            <strong>Bước 2:</strong> Nhấn <code>F12</code> (hoặc chuột phải → Inspect) để mở Developer Console
+        </div>
+        <div class="step">
+            <strong>Bước 3:</strong> Click vào tab <code>Console</code>
+        </div>
+        <div class="step">
+            <strong>Bước 4:</strong> Copy và paste dòng này vào Console, rồi nhấn Enter:
+            <br><code>Testing.unlockAllEndings()</code>
+        </div>
+        <div class="step">
+            <strong>Bước 5:</strong> Refresh trang (F5), sau đó click <code>ENDING GALLERY</code> từ title screen
+        </div>
+        <div class="step">
+            <strong>Kết quả:</strong> Bạn sẽ thấy tất cả 13 endings đã được unlock! ✨
+        </div>
+    </div>
+
+    <div class="method">
+        <h3>🎯 CÁCH 2: XEM TỪNG ENDING CỤ THỂ</h3>
+        <div class="step">
+            <strong>Bước 1-3:</strong> Làm tương tự như trên (mở Console)
+        </div>
+        <div class="step">
+            <strong>Bước 4:</strong> Copy và paste một trong các lệnh sau:
+        </div>
+        <pre style="background:#1a1a2e;padding:15px;border-radius:4px;overflow-x:auto;">
+Testing.triggerEnding('ending_perfect_photo')
+Testing.triggerEnding('ending_everyone_remembers')
+Testing.triggerEnding('ending_last_red')
+Testing.triggerEnding('ending_nothing_wrong')
+Testing.triggerEnding('ending_witness')
+Testing.triggerEnding('ending_eraser')
+Testing.triggerEnding('ending_believer')
+Testing.triggerEnding('ending_impostor')
+Testing.triggerEnding('ending_colorless')
+Testing.triggerEnding('ending_loop')
+Testing.triggerEnding('ending_photographer')
+Testing.triggerEnding('ending_liberation')
+Testing.triggerEnding('ending_third_path')</pre>
+    </div>
+
+    <div class="method">
+        <h3>🎮 CÁCH 3: CHƠI GAME BÌNH THƯỜNG</h3>
+        <p>Nếu bạn muốn chơi game bình thường để unlock endings:</p>
+        <ul>
+            <li>Chụp ảnh, khám phá thành phố Vesper</li>
+            <li>Nói chuyện với NPCs (Elias, Mira, Photo Dealer, etc.)</li>
+            <li>Phát hiện màu đỏ (red color)</li>
+            <li>Thu thập evidence, tăng trust với NPCs</li>
+            <li>Đưa ra các quyết định quan trọng</li>
+        </ul>
+    </div>
+
+    <h2>📋 DANH SÁCH 13 ENDINGS</h2>
+    <div class="ending-list">
+        <div class="ending">
+            <strong>ENDING 01 — THE PERFECT PHOTOGRAPH</strong><br>
+            Điều kiện: Chụp ≥15 ảnh, không có ảnh đỏ, photo integrity > 80
+        </div>
+        <div class="ending">
+            <strong>ENDING 02 — EVERYONE REMEMBERS YOU</strong><br>
+            Điều kiện: Gặp ≥8 NPCs, truth exposure > 60, memory stability < 40
+        </div>
+        <div class="ending">
+            <strong>ENDING 03 — THE LAST RED IMAGE</strong><br>
+            Điều kiện: ≥3 ảnh đỏ, đã analyze red, reality distortion > 50
+        </div>
+        <div class="ending">
+            <strong>ENDING 04 — NOTHING WAS WRONG</strong><br>
+            Điều kiện: ≤5 events, ≤3 ảnh, ≥3 lần im lặng
+        </div>
+        <div class="ending">
+            <strong>ENDING 05 — THE WITNESS</strong><br>
+            Điều kiện: ≥10 evidence, truth exposure > 70
+        </div>
+        <div class="ending">
+            <strong>ENDING 06 — THE ERASER</strong><br>
+            Điều kiện: Xóa ≥5 evidence, không có ảnh đỏ, reality distortion < 20
+        </div>
+        <div class="ending">
+            <strong>ENDING 07 — THE BELIEVER</strong><br>
+            Điều kiện: Trust Elias > 70, Trust Mira > 60, suspicion < 30
+        </div>
+        <div class="ending">
+            <strong>ENDING 08 — THE IMPOSTOR</strong><br>
+            Điều kiện: Nói dối ≥4 lần, gặp Photo Dealer, khám phá subway
+        </div>
+        <div class="ending">
+            <strong>ENDING 09 — THE COLORLESS</strong><br>
+            Điều kiện: Unlock red, reality distortion > 70, child closeness ≥ 6
+        </div>
+        <div class="ending">
+            <strong>ENDING 10 — THE LOOP</strong><br>
+            Điều kiện: Ngủ ≥6 ngày, khám phá Archive
+        </div>
+        <div class="ending">
+            <strong>ENDING 11 — THE PHOTOGRAPHER</strong><br>
+            Điều kiện: Chọn "ending_photographer_chosen" ở final choice
+        </div>
+        <div class="ending">
+            <strong>ENDING 12 — THE LIBERATION</strong><br>
+            Điều kiện: Chọn "ending_liberation_chosen" ở final choice
+        </div>
+        <div class="ending">
+            <strong>ENDING 13 — THE THIRD PATH</strong><br>
+            Điều kiện: Chọn "ending_third_path_chosen" ở final choice
+        </div>
+    </div>
+
+    <h2>🔧 CÁC LỆNH DEBUG KHÁC</h2>
+    <div class="method">
+        <p><code>Testing.debugState()</code> - Xem toàn bộ state hiện tại</p>
+        <p><code>Testing.runAllTests()</code> - Chạy test suite</p>
+        <p><code>Testing.resetGame()</code> - Reset game hoàn toàn</p>
+    </div>
+
+    <p style="text-align:center;margin-top:40px;">
+        <a href="/" style="font-size:18px;">🎮 Quay lại game</a>
+    </p>
+</body>
+</html>
